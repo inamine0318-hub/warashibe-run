@@ -78,7 +78,7 @@ body{
 .grid{
   display:grid;grid-template-columns:repeat(8,44px);
   grid-template-rows:repeat(36,44px);gap:1px;
-  background:#010305;padding:1px;
+  background:#0D2645;padding:1px;
   width:fit-content;
 }
 .cell{
@@ -104,6 +104,24 @@ body{
 .c-collapse-warn{background:#220A04;}
 .c-hole{background:#010204;}
 .c-cracked{background:#0D1828;}
+/* ── TILE VISIBILITY IMPROVEMENTS ── */
+/* ① 境界線: gapカラーを明るく済み。各セルに極薄inset shadowで強調 */
+.cell{box-shadow:inset 0 0 0 1px rgba(20,60,120,0.35);}
+/* ② 市松模様: 交互に微妙な明暗 */
+.cell-light::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0.038);pointer-events:none;z-index:1;}
+.cell-dark::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,0.10);pointer-events:none;z-index:1;}
+/* ③ 立体感: 左上に薄いハイライト→氷面のツヤ感 */
+.c-floor::before,.c-frozen-hit::before,.c-collapse-warn::before,.c-cracked::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,transparent 52%);
+  pointer-events:none;z-index:0;
+}
+/* ④ プレイヤー位置: 発光枠+外側グロー */
+.cell-player{
+  box-shadow:inset 0 0 0 2px rgba(80,200,255,0.80),
+             0 0 12px rgba(40,160,230,0.50),
+             inset 0 0 8px rgba(40,160,230,0.18);
+}
 /* ── DICE ── */
 .dice-area{
   display:flex;align-items:center;gap:10px;
@@ -1288,9 +1306,13 @@ function renderGrid(){
         if(isAxis) cls+=' c-target';
       }
     }
+    // ② 市松模様クラス
+    cls+=(x+y)%2===0?' cell-light':' cell-dark';
+    // ④ プレイヤー位置クラス
+    if(isP) cls+=' cell-player';
     h+=`<div class="${cls}" onclick="onCell(${x},${y})" ${isP?'data-player="1"':''}>
       ${inner}
-      ${isP?`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;">${charSVG(G.char,34,G.playerDir)}</div>`:''}
+      ${isP?`<div style="position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:30px;height:11px;background:radial-gradient(ellipse,rgba(60,190,255,0.52) 0%,transparent 70%);z-index:1;pointer-events:none"></div><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;">${charSVG(G.char,34,G.playerDir)}</div>`:''}
     </div>`;
   }
   h+='</div>';return h;
