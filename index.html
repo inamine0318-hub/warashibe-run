@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="氷島の卵">
+<meta name="theme-color" content="#060C14">
+<title>氷島の卵</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+a,button,input,[onclick]{touch-action:manipulation;}
+:root{
+  --bg:#060C14;--panel:#08101E;--border:#12284A;--text:#8AB8D8;
+  --accent:#2A90E0;--floor:#080F1C;--wall:#0A1C36;--abyss:#020408;
+}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Courier New',monospace;
+  min-height:100vh;min-height:100dvh;
+  display:flex;flex-direction:column;align-items:center;
+  user-select:none;-webkit-tap-highlight-color:transparent;overflow-x:hidden;
+  padding-bottom:env(safe-area-inset-bottom);
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);
+}
+#app{width:100%;max-width:420px;}
+/* ── TITLE / SELECT ── */
+.screen{padding:12px;}
+.logo{
+  text-align:center;padding:18px 0 10px;
+  font-size:22px;font-weight:900;letter-spacing:3px;
+  color:#8AC8EC;text-shadow:0 0 20px #2A90E0,0 0 40px #1A6090;
+}
+.logo-sub{font-size:10px;color:#2A4A6A;letter-spacing:4px;margin-top:2px;}
+.char-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;}
+.char-card{
+  background:var(--panel);border:2px solid var(--border);
+  border-radius:3px;padding:10px;cursor:pointer;transition:border-color .12s;
+}
+.char-card:hover,.char-card:active{border-color:var(--accent);}
+.char-card-inner{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.char-label{font-size:13px;font-weight:bold;margin-bottom:2px;}
+.char-hp-lbl{font-size:10px;color:#6A9CC0;}
+.char-skill-lbl{font-size:9px;opacity:.75;margin-top:3px;}
+.char-skill-name{font-size:9px;margin-top:4px;font-weight:bold;}
+.diff-card{
+  background:var(--panel);border:2px solid var(--border);
+  border-radius:3px;padding:12px;cursor:pointer;margin-bottom:8px;
+  transition:border-color .12s;
+}
+.diff-card:hover{border-color:var(--accent);}
+.diff-title{font-size:14px;font-weight:bold;margin-bottom:4px;}
+.diff-desc{font-size:10px;color:#546E7A;margin-top:3px;}
+/* ── GAME LAYOUT ── */
+.game-wrap{width:100%;display:flex;flex-direction:column;}
+.hdr{
+  background:var(--panel);border-bottom:2px solid var(--border);
+  padding:6px 10px;
+}
+.hdr-row1{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.hdr-name{font-weight:900;font-size:12px;min-width:72px;}
+.hdr-turn{font-size:10px;color:#4A7A9B;margin-left:auto;}
+.bar-wrap{display:flex;align-items:center;gap:5px;font-size:9px;margin-bottom:2px;}
+.bar-lbl{min-width:18px;}
+.bar-bg{flex:1;height:9px;background:#04090F;border:1px solid var(--border);}
+.bar-fill{height:100%;transition:width .2s;}
+.bar-val{min-width:44px;font-size:9px;text-align:right;}
+/* ── GRID (scrollable) ── */
+.grid-area{
+  background:#020609;overflow-y:scroll;
+  -webkit-overflow-scrolling:touch;
+  height:52vw;max-height:340px;min-height:200px;
+  border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  position:relative;
+}
+.grid{
+  display:grid;grid-template-columns:repeat(8,44px);
+  grid-template-rows:repeat(36,44px);gap:1px;
+  background:#010305;padding:1px;
+  width:fit-content;
+}
+.cell{
+  width:44px;height:44px;position:relative;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;overflow:hidden;
+}
+.c-floor{background:var(--floor);}
+.c-wall{background:var(--wall);}
+.c-abyss{background:var(--abyss);}
+.c-airplane{background:#003D50;}
+.c-baggage{background:#2A1C0C;}
+.c-battery{background:#0C2410;}
+.c-spare{background:#141C28;}
+.c-egg{background:#06101E;}
+.c-fuel{background:#18060A;}
+.c-nav{background:#181408;}
+.c-parts{background:#0C1018;}
+.c-frozen-hit{background:#0A2040;}
+.c-snow{background:#0A1828;}
+.c-fog{background:#060C14;}
+.c-target{outline:2px solid #FFE030;z-index:3;box-shadow:0 0 6px #FFE03066 inset;}
+.c-collapse-warn{background:#220A04;}
+.c-hole{background:#010204;}
+.c-cracked{background:#0D1828;}
+/* ── DICE ── */
+.dice-area{
+  display:flex;align-items:center;gap:10px;
+  padding:6px 10px;background:#0A1828;
+  border-bottom:1px solid var(--border);
+  min-height:54px;
+}
+.dice-face{
+  width:40px;height:40px;background:#0D2040;
+  border:2px solid var(--accent);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:900;color:#FFF;
+  transition:all .05s;
+}
+.dice-face.rolling{border-color:#FFEB3B;color:#FFEB3B;}
+.roll-btn{
+  flex:1;padding:8px;background:#1A3D6B;
+  border:2px solid var(--accent);color:#A8D8F8;
+  font-size:12px;font-family:monospace;font-weight:bold;cursor:pointer;
+  border-radius:3px;
+}
+.roll-btn:disabled{opacity:.35;cursor:not-allowed;}
+.steps-info{font-size:11px;color:#90CAF9;min-width:60px;}
+/* ── INVENTORY ── */
+.inv-bar{
+  display:flex;gap:4px;flex-wrap:wrap;
+  padding:4px 8px;background:#091420;border-bottom:1px solid var(--border);
+}
+.inv-chip{font-size:9px;padding:2px 6px;border-radius:2px;border:1px solid;}
+.inv-have{border-color:#55A46B;color:#90D4A8;background:#113322;}
+.inv-need{border-color:#2A4060;color:#3A6085;}
+/* ── LOG ── */
+.log{
+  padding:4px 8px;background:var(--panel);
+  min-height:50px;max-height:66px;overflow-y:auto;
+  border-bottom:1px solid var(--border);
+}
+.log div{font-size:9px;padding:1px 0;}
+.l-info{color:#5B9BD5;}.l-success{color:#56C97B;}
+.l-warning{color:#E8A838;}.l-danger{color:#E85858;}
+/* ── CONTROLS ── */
+.ctrl{
+  background:var(--panel);padding:8px;
+  display:flex;gap:10px;align-items:flex-start;justify-content:center;
+}
+.dpad{
+  display:grid;grid-template-columns:44px 44px 44px;
+  grid-template-rows:44px 44px 44px;gap:2px;
+}
+.dbtn{
+  background:var(--border);border:2px solid #245087;color:#B0CCEC;
+  font-size:17px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border-radius:3px;
+}
+.dbtn:active{background:#245087;}
+.dbtn-blank{background:transparent;border:none;pointer-events:none;}
+.act-col{display:flex;flex-direction:column;gap:4px;padding-top:2px;}
+.act-btn{
+  background:#0E2244;border:2px solid var(--border);color:var(--text);
+  padding:5px 10px;font-size:10px;font-family:monospace;cursor:pointer;
+  border-radius:2px;min-width:105px;text-align:center;
+}
+.act-btn:disabled{opacity:.35;cursor:not-allowed;}
+.act-btn.on{border-color:#FFEB3B;color:#FFEB3B;}
+.end-btn{background:#0C2A1A;border-color:#1A6038;color:#56C97B;}
+.ctrl-notes{font-size:9px;text-align:center;padding:0 6px;margin-top:2px;}
+/* ── OVERLAYS ── */
+.frost{
+  position:fixed;inset:0;pointer-events:none;z-index:80;
+  background:
+    radial-gradient(ellipse at center,transparent 40%,rgba(168,216,248,.22) 100%),
+    linear-gradient(to right,rgba(140,200,240,.15),transparent 22%,transparent 78%,rgba(140,200,240,.15)),
+    linear-gradient(to bottom,rgba(140,200,240,.15),transparent 18%,transparent 82%,rgba(140,200,240,.15));
+}
+@keyframes blizVig{0%,100%{opacity:.38}50%{opacity:.65}}
+.blizzard{
+  position:fixed;inset:0;pointer-events:none;z-index:60;
+  background:
+    radial-gradient(ellipse at center,transparent 20%,rgba(150,200,240,.6) 100%),
+    linear-gradient(to bottom,rgba(200,230,255,.25),transparent 28%,transparent 72%,rgba(200,230,255,.3));
+  animation:blizVig .7s ease-in-out infinite;
+}
+#blizCanvas{position:fixed;top:0;left:50%;transform:translateX(-50%);pointer-events:none;z-index:65;display:none;}
+.cmsg{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(3,7,16,.94);border:2px solid var(--accent);
+  color:#C8E8F8;padding:14px 22px;font-size:15px;font-weight:bold;
+  text-align:center;z-index:200;white-space:pre-line;
+  max-width:290px;border-radius:3px;
+}
+/* ── RESULT ── */
+.result-box{padding:14px;background:var(--panel);border:1px solid var(--border);margin:8px 0;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;}
+.btn{
+  width:100%;padding:10px;background:#0E2040;border:2px solid var(--border);
+  color:var(--text);font-size:12px;font-family:monospace;cursor:pointer;
+  border-radius:2px;margin:4px 0;
+}
+.btn:hover{border-color:var(--accent);}
+.btn-p{background:#0E3060;border-color:var(--accent);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pulse{animation:pulse .75s infinite;}
+</style>
+</head>
+<body>
+<canvas id="blizCanvas" width="420" height="812"></canvas>
+<div id="app"></div>
+<script>
+// ══════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════
+const GCOLS = 8, GROWS = 36;
+const AX = 0, AY = GROWS - 1; // airplane (start/goal)
+
+const CHARS = {
+  captain:  {id:'captain',  name:'キャプテン', hp:130, color:'#42A5F5', dark:'#0D47A1',
+              skill:'ピッケル探索', skillMax:3,
+              skillDesc:'2マス先まで指定して調査。内容（安全/凍結/崩壊/アイテム）を踏まずに判別。'},
+  prisoner: {id:'prisoner', name:'死刑囚',     hp:120, color:'#FF7043', dark:'#BF360C',
+              skill:'障害物跳躍', skillMax:2,
+              skillDesc:'壁・穴を飛び越えてその先の安全なマスへ着地する。'},
+  russian:  {id:'russian',  name:'ロシア兵',   hp:110, color:'#66BB6A', dark:'#1B5E20',
+              skill:'暗視スコープ', skillMax:2,
+              skillDesc:'発動から2ターン間、猛吹雪中でも全マップを完全視認できる。'},
+  rookie:   {id:'rookie',   name:'ルーキー',   hp:100, color:'#FFCA28', dark:'#E65100',
+              skill:'がむしゃら', skillMax:2,
+              skillDesc:'ダイスとは別に追加で2マス確実移動する。SE消費あり。'},
+};
+
+const SE_COST  = {EASY:2, NORMAL:3, HARD:4};
+const DIFF_LBL = {EASY:'イージー', NORMAL:'ノーマル', HARD:'ハード'};
+const ITEM_LBL = {egg:'卵', fuel:'燃料', parts:'部品', nav:'ナビ', goggles:'暗視ゴーグル', spray:'回復スプレー', medkit:'治療箱'};
+const REQ = {
+  EASY:   {egg:1, fuel:1},
+  NORMAL: {egg:1, fuel:1, parts:2},
+  HARD:   {egg:1, fuel:1, parts:3, nav:1},
+};
+const PLACE = {
+  EASY:   [{item:'egg',n:1},{item:'fuel',n:2},{item:'parts',n:2},{item:'spray',n:3},{item:'medkit',n:3}],
+  NORMAL: [{item:'egg',n:1},{item:'fuel',n:2},{item:'parts',n:4},{item:'nav',n:1},{item:'spray',n:2},{item:'medkit',n:2}],
+  HARD:   [{item:'egg',n:1},{item:'fuel',n:2},{item:'parts',n:5},{item:'nav',n:2},{item:'spray',n:1},{item:'medkit',n:1}],
+};
+const BREAK_TILE_COUNT = 58;  // 崩壊マス（20%）
+const FREEZE_TILE_COUNT = 58; // 凍結ゾーン（20%）
+const SNOW_TILE_COUNT   = 23; // 雪マス壁（約8%）
+
+// ══════════════════════════════════════════
+//  SOUND
+// ══════════════════════════════════════════
+let _ac = null;
+const initAudio = () => {
+  if(!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)();
+  if(_ac.state==='suspended') _ac.resume();
+};
+const beep = (f,t='square',d=.1,v=.05) => {
+  try{
+    const o=_ac.createOscillator(),g=_ac.createGain();
+    o.type=t;o.frequency.value=f;
+    g.gain.setValueAtTime(v,_ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,_ac.currentTime+d);
+    o.connect(g);g.connect(_ac.destination);o.start();o.stop(_ac.currentTime+d);
+  }catch(e){}
+};
+const snd={
+  step:()=>beep(280,'square',.05,.025),
+  pick:()=>[440,550,660].forEach((f,i)=>setTimeout(()=>beep(f,'triangle',.15,.035),i*60)),
+  danger:()=>[200,170,140].forEach((f,i)=>setTimeout(()=>beep(f,'sawtooth',.22,.08),i*80)),
+  freeze:()=>beep(780,'triangle',.35,.055),
+  collapse:()=>[140,110,90].forEach((f,i)=>setTimeout(()=>beep(f,'sawtooth',.28,.09),i*90)),
+  bliz:()=>beep(130,'sawtooth',.5,.04),
+  wall:()=>beep(140,'square',.06,.02),
+  win:()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,'square',.28,.07),i*110)),
+  lose:()=>[300,250,200,150,100].forEach((f,i)=>setTimeout(()=>beep(f,'sawtooth',.45,.10),i*140)),
+  pick2:()=>beep(380,'square',.12,.045),
+  skill:()=>[600,700,500].forEach((f,i)=>setTimeout(()=>beep(f,'square',.1,.04),i*50)),
+  dice:()=>beep(500,'square',.06,.04),
+  diceEnd:()=>[400,500,600,800].forEach((f,i)=>setTimeout(()=>beep(f,'square',.08,.05),i*55)),
+};
+
+// ══════════════════════════════════════════
+//  PIXEL ART – ARCTIC SUIT CHARACTER
+// ══════════════════════════════════════════
+function charSVG(id,sz=40,dir='south'){
+  const p={
+    captain:  {suit:'#42A5F5',dark:'#0D47A1',goggle:'#E65100',boot:'#1A237E',leg:'#1565C0',gl:'#FFB74D'},
+    prisoner: {suit:'#EF6C00',dark:'#BF360C',goggle:'#1B5E20',boot:'#212121',leg:'#BF360C',gl:'#66BB6A'},
+    russian:  {suit:'#43A047',dark:'#1B5E20',goggle:'#F57F17',boot:'#1A1A2E',leg:'#2E7D32',gl:'#FFEE58'},
+    rookie:   {suit:'#F9A825',dark:'#E65100',goggle:'#0277BD',boot:'#3E2723',leg:'#E65100',gl:'#4FC3F7'},
+  }[id];
+  const pk='#5A4A30',pkd='#3A2E1A',pkl='#7A6448';
+  const s=p.suit,d=p.dark,g=p.goggle,gl=p.gl,b=p.boot,l=p.leg;
+  const south=`<rect x="5" y="0" width="6" height="1" fill="${s}"/>
+<rect x="4" y="1" width="8" height="1" fill="${s}"/>
+<rect x="3" y="2" width="10" height="4" fill="${s}"/>
+<rect x="3" y="2" width="1" height="5" fill="${d}"/>
+<rect x="12" y="2" width="1" height="5" fill="${d}"/>
+<rect x="4" y="3" width="8" height="2" fill="${g}"/>
+<rect x="4" y="3" width="3" height="1" fill="${gl}"/>
+<rect x="9" y="3" width="3" height="1" fill="${gl}"/>
+<rect x="7" y="3" width="2" height="2" fill="${d}"/>
+<rect x="4" y="5" width="8" height="1" fill="${s}"/>
+<rect x="3" y="6" width="10" height="1" fill="${d}"/>
+<rect x="0" y="7" width="2" height="3" fill="${s}"/>
+<rect x="14" y="7" width="2" height="3" fill="${s}"/>
+<rect x="2" y="7" width="12" height="4" fill="${s}"/>
+<rect x="0" y="9" width="1" height="1" fill="${d}"/>
+<rect x="15" y="9" width="1" height="1" fill="${d}"/>
+<rect x="5" y="7" width="1" height="4" fill="${d}"/>
+<rect x="10" y="7" width="1" height="4" fill="${d}"/>
+<rect x="2" y="11" width="12" height="1" fill="${d}"/>
+<rect x="3" y="12" width="4" height="2" fill="${l}"/>
+<rect x="9" y="12" width="4" height="2" fill="${l}"/>
+<rect x="2" y="14" width="5" height="2" fill="${b}"/>
+<rect x="9" y="14" width="5" height="2" fill="${b}"/>
+<rect x="2" y="15" width="12" height="1" fill="${d}"/>`;
+  const north=`<rect x="5" y="0" width="6" height="1" fill="${d}"/>
+<rect x="4" y="1" width="8" height="1" fill="${s}"/>
+<rect x="3" y="2" width="10" height="4" fill="${s}"/>
+<rect x="3" y="2" width="1" height="5" fill="${d}"/>
+<rect x="12" y="2" width="1" height="5" fill="${d}"/>
+<rect x="4" y="6" width="8" height="1" fill="${d}"/>
+<rect x="0" y="7" width="3" height="3" fill="${s}"/>
+<rect x="13" y="7" width="3" height="3" fill="${s}"/>
+<rect x="0" y="7" width="1" height="3" fill="${d}"/>
+<rect x="15" y="7" width="1" height="3" fill="${d}"/>
+<rect x="3" y="7" width="10" height="5" fill="${pk}"/>
+<rect x="3" y="7" width="10" height="1" fill="${pkl}"/>
+<rect x="4" y="8" width="8" height="4" fill="${pkd}"/>
+<rect x="4" y="9" width="3" height="2" fill="${pk}"/>
+<rect x="9" y="9" width="3" height="2" fill="${pk}"/>
+<rect x="7" y="8" width="2" height="2" fill="${pk}"/>
+<rect x="3" y="12" width="4" height="2" fill="${l}"/>
+<rect x="9" y="12" width="4" height="2" fill="${l}"/>
+<rect x="2" y="14" width="5" height="2" fill="${b}"/>
+<rect x="9" y="14" width="5" height="2" fill="${b}"/>
+<rect x="2" y="15" width="12" height="1" fill="${d}"/>`;
+  const east=`<rect x="5" y="0" width="5" height="1" fill="${s}"/>
+<rect x="4" y="1" width="6" height="1" fill="${s}"/>
+<rect x="4" y="2" width="7" height="3" fill="${s}"/>
+<rect x="4" y="1" width="1" height="5" fill="${d}"/>
+<rect x="10" y="2" width="1" height="3" fill="${d}"/>
+<rect x="8" y="2" width="4" height="2" fill="${g}"/>
+<rect x="9" y="2" width="2" height="1" fill="${gl}"/>
+<rect x="5" y="5" width="5" height="1" fill="${s}"/>
+<rect x="4" y="6" width="6" height="1" fill="${d}"/>
+<rect x="1" y="6" width="4" height="5" fill="${pk}"/>
+<rect x="1" y="6" width="4" height="1" fill="${pkl}"/>
+<rect x="2" y="7" width="3" height="4" fill="${pkd}"/>
+<rect x="5" y="7" width="6" height="4" fill="${s}"/>
+<rect x="11" y="7" width="1" height="4" fill="${d}"/>
+<rect x="11" y="7" width="3" height="2" fill="${s}"/>
+<rect x="13" y="7" width="1" height="2" fill="${d}"/>
+<rect x="4" y="11" width="8" height="1" fill="${d}"/>
+<rect x="5" y="12" width="4" height="2" fill="${l}"/>
+<rect x="7" y="12" width="4" height="2" fill="${l}"/>
+<rect x="4" y="14" width="4" height="2" fill="${b}"/>
+<rect x="7" y="14" width="4" height="2" fill="${b}"/>
+<rect x="4" y="15" width="7" height="1" fill="${d}"/>`;
+  const west=`<g transform="translate(16,0) scale(-1,1)">${east}</g>`;
+  const body={south,north,east,west}[dir]||south;
+  return `<svg viewBox="0 0 16 16" width="${sz}" height="${sz}" style="image-rendering:pixelated;flex-shrink:0">${body}</svg>`;
+}
+
+// ══════════════════════════════════════════
+//  TILE ICONS (SVGs)
+// ══════════════════════════════════════════
+const SVGS = {
+  // ── 氷タイル 4バリアント（ひびパターン違い） ──
+  ice0:`<svg viewBox="0 0 16 16" width="100%" height="100%" style="image-rendering:pixelated">
+    <rect width="16" height="16" fill="#080F1C"/>
+    <rect x="2" y="2" width="1" height="1" fill="#1C4875"/>
+    <rect x="3" y="3" width="2" height="1" fill="#1C4875"/>
+    <rect x="5" y="4" width="1" height="2" fill="#1C4875"/>
+    <rect x="6" y="6" width="2" height="1" fill="#1C4875"/>
+    <rect x="8" y="7" width="1" height="2" fill="#1C4875"/>
+    <rect x="9" y="9" width="2" height="1" fill="#1C4875"/>
+    <rect x="11" y="10" width="1" height="2" fill="#1C4875"/>
+    <rect x="12" y="12" width="2" height="1" fill="#1C4875"/>
+    <rect x="4" y="7" width="1" height="3" fill="#142848" opacity=".7"/>
+    <rect x="1" y="13" width="4" height="1" fill="#1E5888" opacity=".3"/>
+    <rect x="11" y="1" width="4" height="1" fill="#1E5888" opacity=".22"/>
+  </svg>`,
+  ice1:`<svg viewBox="0 0 16 16" width="100%" height="100%" style="image-rendering:pixelated">
+    <rect width="16" height="16" fill="#080F1C"/>
+    <rect x="7" y="1" width="2" height="3" fill="#1C4875"/>
+    <rect x="6" y="4" width="1" height="1" fill="#1C4875"/>
+    <rect x="9" y="4" width="1" height="1" fill="#1C4875"/>
+    <rect x="5" y="5" width="1" height="4" fill="#1C4875"/>
+    <rect x="4" y="9" width="2" height="1" fill="#1C4875"/>
+    <rect x="10" y="5" width="1" height="4" fill="#1C4875"/>
+    <rect x="10" y="9" width="2" height="1" fill="#1C4875"/>
+    <rect x="3" y="10" width="1" height="3" fill="#142848" opacity=".65"/>
+    <rect x="12" y="1" width="3" height="1" fill="#1E5888" opacity=".3"/>
+    <rect x="1" y="12" width="2" height="1" fill="#1E5888" opacity=".22"/>
+  </svg>`,
+  ice2:`<svg viewBox="0 0 16 16" width="100%" height="100%" style="image-rendering:pixelated">
+    <rect width="16" height="16" fill="#080F1C"/>
+    <rect x="0" y="6" width="3" height="1" fill="#1C4875"/>
+    <rect x="3" y="7" width="1" height="1" fill="#1C4875"/>
+    <rect x="4" y="8" width="3" height="1" fill="#1C4875"/>
+    <rect x="7" y="9" width="1" height="1" fill="#1C4875"/>
+    <rect x="8" y="10" width="4" height="1" fill="#1C4875"/>
+    <rect x="12" y="11" width="1" height="2" fill="#1C4875"/>
+    <rect x="13" y="13" width="3" height="1" fill="#1C4875"/>
+    <rect x="2" y="12" width="1" height="4" fill="#142848" opacity=".65"/>
+    <rect x="9" y="2" width="5" height="1" fill="#1E5888" opacity=".28"/>
+    <rect x="14" y="4" width="2" height="2" fill="#1E5888" opacity=".22"/>
+  </svg>`,
+  ice3:`<svg viewBox="0 0 16 16" width="100%" height="100%" style="image-rendering:pixelated">
+    <rect width="16" height="16" fill="#080F1C"/>
+    <rect x="1" y="1" width="1" height="4" fill="#1C4875"/>
+    <rect x="2" y="5" width="3" height="1" fill="#1C4875"/>
+    <rect x="5" y="6" width="1" height="2" fill="#1C4875"/>
+    <rect x="11" y="9" width="1" height="4" fill="#1C4875"/>
+    <rect x="12" y="9" width="2" height="1" fill="#1C4875"/>
+    <rect x="10" y="13" width="3" height="1" fill="#1C4875"/>
+    <rect x="7" y="4" width="1" height="2" fill="#142848" opacity=".6"/>
+    <rect x="8" y="6" width="2" height="1" fill="#142848" opacity=".6"/>
+    <rect x="12" y="2" width="3" height="1" fill="#1E5888" opacity=".3"/>
+    <rect x="0" y="14" width="3" height="1" fill="#1E5888" opacity=".22"/>
+  </svg>`,
+  ice4:`<svg viewBox="0 0 16 16" width="100%" height="100%" style="image-rendering:pixelated">
+    <rect width="16" height="16" fill="#080F1C"/>
+    <!-- ice cracks underneath snow -->
+    <rect x="4" y="5" width="1" height="4" fill="#1C4875" opacity=".5"/>
+    <rect x="5" y="6" width="2" height="1" fill="#1C4875" opacity=".45"/>
+    <rect x="9" y="3" width="3" height="1" fill="#1C4875" opacity=".4"/>
+    <!-- snow drift bottom-left -->
+    <rect x="0" y="11" width="3" height="1" fill="#C8DCF0" opacity=".55"/>
+    <rect x="0" y="12" width="6" height="4" fill="#C8DCF0" opacity=".82"/>
+    <rect x="1" y="12" width="4" height="1" fill="#E0F0FF" opacity=".6"/>
+    <!-- snow drift top-right -->
+    <rect x="11" y="0" width="5" height="3" fill="#BEDAF0" opacity=".78"/>
+    <rect x="10" y="3" width="6" height="1" fill="#BEDAF0" opacity=".6"/>
+    <rect x="12" y="1" width="3" height="1" fill="#E0F0FF" opacity=".55"/>
+    <!-- small snow highlights -->
+    <rect x="6" y="9" width="1" height="1" fill="#E8F4FF" opacity=".7"/>
+    <rect x="13" y="8" width="1" height="1" fill="#E8F4FF" opacity=".6"/>
+    <rect x="3" y="7" width="1" height="1" fill="#D0E8F8" opacity=".5"/>
+  </svg>`,
+  // ── アイテム・オブジェクト ──
+  airplane:`<svg viewBox="0 0 16 16" width="28" height="28" style="image-rendering:pixelated">
+    <rect x="7" y="0" width="2" height="1" fill="#FFFFFF"/>
+    <rect x="6" y="1" width="4" height="2" fill="#D0E8F8"/>
+    <rect x="7" y="1" width="2" height="11" fill="#D8EEF8"/>
+    <rect x="6" y="3" width="4" height="2" fill="#4A9ACD"/>
+    <rect x="1" y="5" width="14" height="3" fill="#A8C8E4"/>
+    <rect x="0" y="6" width="2" height="1" fill="#6888A8"/>
+    <rect x="14" y="6" width="2" height="1" fill="#6888A8"/>
+    <rect x="2" y="5" width="12" height="1" fill="#C8E4F8"/>
+    <rect x="4" y="6" width="2" height="2" fill="#6888A8"/>
+    <rect x="10" y="6" width="2" height="2" fill="#6888A8"/>
+    <rect x="5" y="11" width="6" height="2" fill="#A8C0D8"/>
+    <rect x="4" y="12" width="2" height="1" fill="#7898B8"/>
+    <rect x="10" y="12" width="2" height="1" fill="#7898B8"/>
+    <rect x="7" y="13" width="2" height="1" fill="#90A8C0"/>
+  </svg>`,
+  baggage:`<svg viewBox="0 0 16 16" width="40" height="40" style="image-rendering:pixelated">
+    <rect x="2" y="3" width="12" height="2" fill="#5A4428"/>
+    <rect x="2" y="4" width="12" height="9" fill="#3D2E18"/>
+    <rect x="2" y="4" width="2" height="9" fill="#4A3820"/>
+    <rect x="12" y="4" width="2" height="9" fill="#4A3820"/>
+    <rect x="2" y="7" width="12" height="1" fill="#C09040" opacity=".85"/>
+    <rect x="2" y="8" width="12" height="1" fill="#A07030" opacity=".75"/>
+    <rect x="7" y="3" width="2" height="10" fill="#B08030" opacity=".6"/>
+    <rect x="7" y="7" width="2" height="2" fill="#E0B050"/>
+    <rect x="8" y="7" width="1" height="2" fill="#F0C860" opacity=".65"/>
+    <rect x="4" y="5" width="3" height="1" fill="#281804" opacity=".55"/>
+    <rect x="9" y="10" width="4" height="1" fill="#281804" opacity=".5"/>
+    <rect x="2" y="3" width="12" height="10" fill="none" stroke="#C08828" stroke-width=".5" opacity=".75"/>
+  </svg>`,
+  battery:`<svg viewBox="0 0 16 16" width="40" height="40" style="image-rendering:pixelated">
+    <rect x="3" y="4" width="10" height="9" fill="#143814"/>
+    <rect x="3" y="4" width="10" height="9" fill="none" stroke="#1A6018" stroke-width=".5"/>
+    <rect x="6" y="2" width="2" height="3" fill="#20A020"/>
+    <rect x="6" y="2" width="2" height="1" fill="#30CC30"/>
+    <rect x="9" y="2" width="2" height="3" fill="#A02020"/>
+    <rect x="9" y="2" width="2" height="1" fill="#CC2020"/>
+    <rect x="5" y="6" width="6" height="1" fill="#20A020" opacity=".95"/>
+    <rect x="5" y="8" width="6" height="1" fill="#20A020" opacity=".75"/>
+    <rect x="5" y="10" width="4" height="1" fill="#20A020" opacity=".5"/>
+    <rect x="4" y="5" width="8" height="7" fill="none" stroke="#28C028" stroke-width=".5" opacity=".5"/>
+    <rect x="4" y="4" width="2" height="1" fill="#1E5818" opacity=".7"/>
+  </svg>`,
+  spare:`<svg viewBox="0 0 16 16" width="40" height="40" style="image-rendering:pixelated">
+    <rect x="8" y="8" width="2" height="2" fill="#7A5A28"/>
+    <rect x="9" y="10" width="2" height="2" fill="#7A5A28"/>
+    <rect x="10" y="12" width="2" height="3" fill="#6A4A20"/>
+    <rect x="3" y="4" width="9" height="3" fill="#7A8898"/>
+    <rect x="3" y="5" width="9" height="1" fill="#9AAAB8"/>
+    <rect x="2" y="4" width="2" height="2" fill="#8898A8"/>
+    <rect x="1" y="5" width="2" height="2" fill="#6A7888"/>
+    <rect x="11" y="3" width="3" height="5" fill="#6A7888"/>
+    <rect x="11" y="4" width="3" height="3" fill="#7A8898"/>
+    <rect x="4" y="4" width="5" height="1" fill="#B0C0CC" opacity=".75"/>
+  </svg>`,
+  egg:`<svg viewBox="0 0 16 16" width="40" height="40" style="image-rendering:pixelated">
+    <rect x="5" y="3" width="6" height="1" fill="#C89010"/>
+    <rect x="4" y="4" width="8" height="1" fill="#C89010"/>
+    <rect x="4" y="5" width="8" height="4" fill="#F0C030"/>
+    <rect x="4" y="9" width="8" height="2" fill="#C89010"/>
+    <rect x="5" y="11" width="6" height="1" fill="#906A00"/>
+    <rect x="6" y="12" width="4" height="1" fill="#604000"/>
+    <rect x="5" y="5" width="2" height="2" fill="#FFF0A0"/>
+    <rect x="10" y="5" width="2" height="5" fill="#906A00"/>
+  </svg>`,
+  fuel:`<svg viewBox="0 0 16 16" width="40" height="40" style="image-rendering:pixelated">
+    <rect x="5" y="3" width="6" height="10" fill="#C82020"/>
+    <rect x="5" y="3" width="2" height="10" fill="#E83030"/>
+    <rect x="9" y="3" width="2" height="10" fill="#981818"/>
+    <rect x="7" y="1" width="2" height="3" fill="#A0A0A0"/>
+    <rect x="7" y="1" width="2" height="1" fill="#D0D0D0"/>
+    <rect x="5" y="6" width="6" height="1" fill="#E84040"/>
+    <rect x="5" y="9" width="6" height="1" fill="#801010"/>
+    <rect x="5" y="12" width="6" height="1" fill="#6C1010"/>
+    <rect x="4" y="4" width="1" height="1" fill="#808080"/>
+    <rect x="11" y="4" width="1" height="1" fill="#808080"/>
+    <rect x="4" y="11" width="1" height="1" fill="#808080"/>
+    <rect x="11" y="11" width="1" height="1" fill="#808080"/>
+  </svg>`,
+  nav:`<svg viewBox="0 0 16 16" width="40" height="40" style="image-rendering:pixelated">
+    <rect x="1" y="2" width="14" height="12" fill="#3A3010"/>
+    <rect x="1" y="2" width="14" height="1" fill="#504018"/>
+    <rect x="2" y="3" width="12" height="8" fill="#C8A000"/>
+    <rect x="2" y="3" width="12" height="1" fill="#E8C000"/>
+    <rect x="2" y="5" width="12" height="1" fill="#806600"/>
+    <rect x="2" y="7" width="12" height="1" fill="#806600"/>
+    <rect x="6" y="3" width="1" height="8" fill="#604800"/>
+    <rect x="10" y="3" width="1" height="8" fill="#604800"/>
+    <rect x="7" y="5" width="3" height="3" fill="#FFE840"/>
+    <rect x="7" y="5" width="3" height="1" fill="#FFF880"/>
+    <rect x="2" y="12" width="3" height="2" fill="#252010"/>
+    <rect x="6" y="12" width="4" height="2" fill="#B08800"/>
+    <rect x="6" y="12" width="4" height="1" fill="#C89A00"/>
+    <rect x="11" y="12" width="3" height="2" fill="#252010"/>
+  </svg>`,
+  parts:`<svg viewBox="0 0 16 16" width="40" height="40" style="image-rendering:pixelated">
+    <rect x="2" y="2" width="4" height="4" fill="#8090A0"/>
+    <rect x="2" y="2" width="4" height="1" fill="#A0B0C0"/>
+    <rect x="3" y="3" width="2" height="2" fill="#506070"/>
+    <rect x="3" y="3" width="1" height="1" fill="#2A3848"/>
+    <rect x="10" y="2" width="4" height="4" fill="#8090A0"/>
+    <rect x="10" y="2" width="4" height="1" fill="#A0B0C0"/>
+    <rect x="11" y="3" width="2" height="2" fill="#506070"/>
+    <rect x="11" y="3" width="1" height="1" fill="#2A3848"/>
+    <rect x="2" y="10" width="4" height="4" fill="#8090A0"/>
+    <rect x="2" y="10" width="4" height="1" fill="#A0B0C0"/>
+    <rect x="3" y="11" width="2" height="2" fill="#506070"/>
+    <rect x="3" y="11" width="1" height="1" fill="#2A3848"/>
+    <rect x="10" y="10" width="4" height="4" fill="#8090A0"/>
+    <rect x="10" y="10" width="4" height="1" fill="#A0B0C0"/>
+    <rect x="11" y="11" width="2" height="2" fill="#506070"/>
+    <rect x="11" y="11" width="1" height="1" fill="#2A3848"/>
+    <rect x="7" y="7" width="2" height="2" fill="#C0C8D0"/>
+    <rect x="7" y="7" width="2" height="1" fill="#E0E8F0"/>
+  </svg>`,
+  wall:`<svg viewBox="0 0 16 16" width="100%" height="100%" style="image-rendering:pixelated">
+    <rect width="16" height="16" fill="#0A1D38"/>
+    <rect x="0" y="7" width="16" height="1" fill="#050E1E" opacity=".9"/>
+    <rect x="7" y="0" width="1" height="7" fill="#050E1E" opacity=".7"/>
+    <rect x="8" y="8" width="1" height="8" fill="#050E1E" opacity=".7"/>
+    <rect x="1" y="1" width="5" height="5" fill="#0E2540" opacity=".55"/>
+    <rect x="9" y="9" width="6" height="6" fill="#0E2540" opacity=".55"/>
+    <rect x="2" y="2" width="2" height="1" fill="#1A3A60" opacity=".55"/>
+    <rect x="10" y="10" width="3" height="1" fill="#1A3A60" opacity=".55"/>
+    <rect x="10" y="2" width="1" height="3" fill="#1A3A60" opacity=".4"/>
+    <rect x="3" y="11" width="1" height="3" fill="#1A3A60" opacity=".4"/>
+    <rect x="1" y="1" width="5" height="1" fill="#1E4878" opacity=".4"/>
+    <rect x="9" y="9" width="6" height="1" fill="#1E4878" opacity=".32"/>
+  </svg>`,
+  abyss:`<svg viewBox="0 0 16 16" width="100%" height="100%" style="image-rendering:pixelated">
+    <rect width="16" height="16" fill="#020408"/>
+    <rect x="0" y="0" width="4" height="3" fill="#080F1C" opacity=".75"/>
+    <rect x="12" y="0" width="4" height="3" fill="#080F1C" opacity=".75"/>
+    <rect x="0" y="13" width="4" height="3" fill="#080F1C" opacity=".75"/>
+    <rect x="12" y="13" width="4" height="3" fill="#080F1C" opacity=".75"/>
+    <rect x="4" y="4" width="8" height="8" fill="#010204"/>
+    <rect x="5" y="5" width="6" height="6" fill="#000"/>
+    <rect x="2" y="4" width="3" height="1" fill="#0C1E34" opacity=".85"/>
+    <rect x="10" y="11" width="4" height="1" fill="#0C1E34" opacity=".85"/>
+    <rect x="4" y="2" width="1" height="2" fill="#0C1E34" opacity=".6"/>
+    <rect x="11" y="12" width="1" height="2" fill="#0C1E34" opacity=".6"/>
+  </svg>`,
+  frozen:`<svg viewBox="0 0 16 16" width="100%" height="100%" style="image-rendering:pixelated">
+    <rect width="16" height="16" fill="#0A2440"/>
+    <rect x="7" y="1" width="2" height="14" fill="#3A88C0" opacity=".85"/>
+    <rect x="1" y="7" width="14" height="2" fill="#3A88C0" opacity=".85"/>
+    <rect x="4" y="4" width="2" height="2" fill="#2A70A8"/>
+    <rect x="10" y="10" width="2" height="2" fill="#2A70A8"/>
+    <rect x="10" y="4" width="2" height="2" fill="#2A70A8"/>
+    <rect x="4" y="10" width="2" height="2" fill="#2A70A8"/>
+    <rect x="6" y="6" width="4" height="4" fill="#50A8D8"/>
+    <rect x="7" y="7" width="2" height="2" fill="#80C8EC"/>
+    <rect x="7" y="1" width="2" height="2" fill="#60B8E0"/>
+    <rect x="7" y="13" width="2" height="2" fill="#60B8E0"/>
+    <rect x="1" y="7" width="2" height="2" fill="#60B8E0"/>
+    <rect x="13" y="7" width="2" height="2" fill="#60B8E0"/>
+  </svg>`,
+  snowblock:`<svg viewBox="0 0 16 16" width="100%" height="100%" style="image-rendering:pixelated">
+    <rect width="16" height="16" fill="#080F1C"/>
+    <rect x="5" y="1" width="6" height="2" fill="#FFFFFF"/>
+    <rect x="3" y="3" width="10" height="2" fill="#EFF8FF"/>
+    <rect x="1" y="5" width="14" height="2" fill="#E0F0FC"/>
+    <rect x="0" y="7" width="16" height="6" fill="#D0E8F8"/>
+    <rect x="0" y="13" width="16" height="3" fill="#B0C8E4"/>
+    <rect x="5" y="1" width="3" height="1" fill="#FFFFFF"/>
+    <rect x="3" y="3" width="2" height="1" fill="#F4FAFF"/>
+    <rect x="10" y="3" width="3" height="2" fill="#C0D8EC"/>
+    <rect x="12" y="5" width="3" height="2" fill="#B0C4DC"/>
+    <rect x="14" y="7" width="2" height="3" fill="#A0B8D0"/>
+  </svg>`,
+  cracked:`<svg viewBox="0 0 16 16" width="100%" height="100%" style="image-rendering:pixelated">
+    <rect width="16" height="16" fill="#0D1828"/>
+    <rect x="7" y="0" width="1" height="4" fill="#2A6898"/>
+    <rect x="6" y="4" width="3" height="1" fill="#2A6898"/>
+    <rect x="5" y="5" width="2" height="3" fill="#2A6898"/>
+    <rect x="4" y="8" width="5" height="1" fill="#2A6898"/>
+    <rect x="9" y="7" width="1" height="2" fill="#2A6898"/>
+    <rect x="10" y="9" width="3" height="1" fill="#2A6898"/>
+    <rect x="12" y="10" width="1" height="4" fill="#2A6898"/>
+    <rect x="1" y="3" width="3" height="1" fill="#1A4870"/>
+    <rect x="2" y="4" width="1" height="3" fill="#1A4870"/>
+    <rect x="9" y="1" width="4" height="1" fill="#1A4870"/>
+    <rect x="13" y="2" width="2" height="3" fill="#1A4870"/>
+    <rect x="5" y="6" width="3" height="2" fill="#380808"/>
+    <rect x="7" y="5" width="2" height="1" fill="#4A0C0C"/>
+  </svg>`,
+  cwarn:`<svg viewBox="0 0 16 16" width="100%" height="100%" style="image-rendering:pixelated">
+    <rect width="16" height="16" fill="#220A04"/>
+    <rect x="3" y="2" width="1" height="4" fill="#3A1208" opacity=".65"/>
+    <rect x="11" y="9" width="1" height="4" fill="#3A1208" opacity=".65"/>
+    <polygon points="8,2 14,13 2,13" fill="#CC3A10" opacity=".9"/>
+    <rect x="7" y="5" width="2" height="4" fill="#FFF" opacity=".93"/>
+    <rect x="7" y="10" width="2" height="2" fill="#FFF" opacity=".93"/>
+    <rect x="7" y="2" width="2" height="1" fill="#FF6030" opacity=".85"/>
+  </svg>`,
+  goggles:`<svg viewBox="0 0 16 16" width="40" height="40" style="image-rendering:pixelated">
+    <rect x="0" y="7" width="1" height="3" fill="#283840"/>
+    <rect x="15" y="7" width="1" height="3" fill="#283840"/>
+    <rect x="7" y="7" width="2" height="2" fill="#405060"/>
+    <rect x="1" y="5" width="6" height="7" fill="#304050"/>
+    <rect x="1" y="5" width="6" height="1" fill="#506070"/>
+    <rect x="2" y="6" width="4" height="5" fill="#0A1E14"/>
+    <rect x="2" y="6" width="4" height="1" fill="#0A4020"/>
+    <rect x="2" y="7" width="2" height="3" fill="#106828"/>
+    <rect x="2" y="7" width="1" height="1" fill="#28C850"/>
+    <rect x="9" y="5" width="6" height="7" fill="#304050"/>
+    <rect x="9" y="5" width="6" height="1" fill="#506070"/>
+    <rect x="10" y="6" width="4" height="5" fill="#0A1E14"/>
+    <rect x="10" y="6" width="4" height="1" fill="#0A4020"/>
+    <rect x="12" y="7" width="2" height="3" fill="#106828"/>
+    <rect x="13" y="7" width="1" height="1" fill="#28C850"/>
+  </svg>`,
+  spray:`<svg viewBox="0 0 16 16" width="40" height="40" style="image-rendering:pixelated">
+    <rect x="5" y="4" width="6" height="9" fill="#3A7AB8"/>
+    <rect x="5" y="4" width="2" height="9" fill="#5A9CD8"/>
+    <rect x="9" y="4" width="2" height="9" fill="#205888"/>
+    <rect x="5" y="7" width="6" height="3" fill="#18406A"/>
+    <rect x="5" y="7" width="6" height="1" fill="#22508A"/>
+    <rect x="7" y="8" width="2" height="1" fill="#7AB8E0"/>
+    <rect x="8" y="8" width="1" height="1" fill="#A8D8F8" opacity=".7"/>
+    <rect x="4" y="2" width="8" height="3" fill="#708898"/>
+    <rect x="4" y="2" width="8" height="1" fill="#90A8B8"/>
+    <rect x="7" y="1" width="3" height="2" fill="#506070"/>
+    <rect x="9" y="0" width="2" height="2" fill="#404858"/>
+    <rect x="5" y="13" width="6" height="1" fill="#163048"/>
+  </svg>`,
+  medkit:`<svg viewBox="0 0 16 16" width="40" height="40" style="image-rendering:pixelated">
+    <rect x="5" y="2" width="6" height="3" fill="#808080"/>
+    <rect x="5" y="2" width="6" height="1" fill="#A8A8A8"/>
+    <rect x="6" y="3" width="4" height="1" fill="#484848"/>
+    <rect x="1" y="5" width="14" height="9" fill="#E0E0E0"/>
+    <rect x="1" y="5" width="14" height="2" fill="#F0F0F0"/>
+    <rect x="13" y="7" width="2" height="7" fill="#B0B0B0"/>
+    <rect x="1" y="13" width="14" height="1" fill="#C0C0C0"/>
+    <rect x="7" y="6" width="2" height="7" fill="#CC1818"/>
+    <rect x="4" y="8" width="8" height="3" fill="#CC1818"/>
+    <rect x="7" y="6" width="1" height="1" fill="#EE3030"/>
+    <rect x="4" y="8" width="2" height="1" fill="#EE3030"/>
+  </svg>`,
+  hole:`<svg viewBox="0 0 16 16" width="100%" height="100%" style="image-rendering:pixelated">
+    <rect width="16" height="16" fill="#010204"/>
+    <rect x="0" y="0" width="5" height="2" fill="#0D1C30" opacity=".9"/>
+    <rect x="5" y="0" width="4" height="1" fill="#0D1C30" opacity=".6"/>
+    <rect x="11" y="0" width="5" height="2" fill="#0D1C30" opacity=".9"/>
+    <rect x="0" y="14" width="4" height="2" fill="#0D1C30" opacity=".85"/>
+    <rect x="12" y="14" width="4" height="2" fill="#0D1C30" opacity=".85"/>
+    <rect x="4" y="15" width="4" height="1" fill="#0D1C30" opacity=".55"/>
+    <rect x="3" y="3" width="10" height="10" fill="#000"/>
+    <rect x="5" y="5" width="6" height="6" fill="#000"/>
+    <rect x="0" y="2" width="4" height="1" fill="#1C3A5C" opacity=".7"/>
+    <rect x="12" y="2" width="4" height="1" fill="#1C3A5C" opacity=".7"/>
+    <rect x="0" y="12" width="5" height="1" fill="#1C3A5C" opacity=".65"/>
+    <rect x="11" y="13" width="5" height="1" fill="#1C3A5C" opacity=".65"/>
+    <rect x="2" y="2" width="1" height="3" fill="#1C3A5C" opacity=".5"/>
+    <rect x="12" y="11" width="1" height="3" fill="#1C3A5C" opacity=".5"/>
+  </svg>`,
+};
+
+// ══════════════════════════════════════════
+//  GAME STATE
+// ══════════════════════════════════════════
+let G = {};
+
+function mkState(){
+  return {
+    screen:'select', char:null, difficulty:null,
+    grid:[], player:{x:AX,y:AY},
+    hp:0, maxHp:0, se:100,
+    phase:'roll',   // 'roll' | 'move'
+    diceVal:null,   // current face (null = not rolled yet)
+    diceRolling:false,
+    stepsLeft:0,
+    turn:1,
+    skillUses:3, pickaxeUses:3,
+    pickaxeUsedThisTurn:false,
+    russianScopeLeft:0,
+    inventory:{},
+    logs:[],
+    gameOver:false, won:false,
+    blizzardActive:false, hasGoggles:false, frozenCount:0, frozenNextTurn:false,
+    batteryCharges:3,
+    playerDir:'south',
+    actionMode:null, // null | 'skill' | 'pickaxe'
+    revealedGimmicks:new Set(),
+    requiredItems:{},
+    seCost:1,
+    centralMsg:null,
+  };
+}
+
+// ══════════════════════════════════════════
+//  MAP GENERATION (8 × 36)
+// ══════════════════════════════════════════
+const ci  = (x,y)=>y*GCOLS+x;
+const gc  = (x,y)=>G.grid[ci(x,y)];
+const sc  = (x,y,u)=>{ G.grid[ci(x,y)]={...G.grid[ci(x,y)],...u}; };
+const inB = (x,y)=>x>=0&&x<GCOLS&&y>=0&&y<GROWS;
+
+function genMap(diff){
+  const grid=Array.from({length:GCOLS*GROWS},(_,i)=>{
+    const x=i%GCOLS,y=Math.floor(i/GCOLS);
+    return {type:'floor',item:null,x,y};
+  });
+  grid[ci(AX,AY)]={type:'airplane',item:null,x:AX,y:AY};
+
+  const safe=(x,y)=>(x===AX&&y===AY)||Math.abs(x-AX)+Math.abs(y-AY)<=2;
+  const used=new Set([`${AX},${AY}`]);
+
+  // 卵を右上(7,0)に固定
+  const eggX=GCOLS-1,eggY=0;
+  grid[ci(eggX,eggY)]={type:'baggage',item:'egg',x:eggX,y:eggY};
+  used.add(`${eggX},${eggY}`);
+
+  const pos=[];
+  for(let y=0;y<GROWS;y++) for(let x=0;x<GCOLS;x++) if(!safe(x,y)) pos.push({x,y});
+  for(let i=pos.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pos[i],pos[j]]=[pos[j],pos[i]];}
+
+  let pi=0;
+  const place=(type,item=null)=>{
+    while(pi<pos.length){
+      const {x,y}=pos[pi++];const k=`${x},${y}`;
+      if(!used.has(k)){used.add(k);grid[ci(x,y)]={type,item,x,y};return true;}
+    }
+    return false;
+  };
+
+  for(const {item,n} of PLACE[diff]) for(let i=0;i<n;i++) if(item!=='egg') place('baggage',item);
+  place('spare'); place('spare');
+  const bats=diff==='EASY'?2:3;
+  for(let i=0;i<bats;i++) place('battery');
+  place('baggage','goggles');
+  for(let i=0;i<SNOW_TILE_COUNT;i++)  place('snowblock');
+  for(let i=0;i<BREAK_TILE_COUNT;i++) place('collapse');
+  for(let i=0;i<FREEZE_TILE_COUNT;i++) place('frozen');
+
+  return grid;
+}
+
+function connected(grid){
+  const pass=new Set(grid.filter(c=>c.type!=='wall'&&c.type!=='abyss'&&c.type!=='snowblock').map(c=>`${c.x},${c.y}`));
+  const vis=new Set([`${AX},${AY}`]);
+  const q=[{x:AX,y:AY}];
+  while(q.length){
+    const {x,y}=q.shift();
+    for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){
+      const nx=x+dx,ny=y+dy,k=`${nx},${ny}`;
+      if(inB(nx,ny)&&pass.has(k)&&!vis.has(k)){vis.add(k);q.push({x:nx,y:ny});}
+    }
+  }
+  return grid.filter(c=>c.type==='baggage').every(c=>vis.has(`${c.x},${c.y}`));
+}
+
+// ══════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════
+function log(msg,t='info'){
+  G.logs.unshift({msg,t});
+  if(G.logs.length>7) G.logs.pop();
+}
+let _mT=null;
+function showMsg(msg,dur=1600){
+  G.centralMsg=msg;
+  if(_mT) clearTimeout(_mT);
+  _mT=setTimeout(()=>{G.centralMsg=null;render();},dur);
+  render();
+}
+function damage(amt,reason=''){
+  G.hp=Math.max(0,G.hp-amt);
+  if(reason) log(`${reason} (-${amt}HP)`,'danger');
+  snd.danger();
+  if(G.hp<=0&&!G.gameOver){G.gameOver=true;G.won=false;G.screen='result';log('力尽きた…','danger');snd.lose();}
+}
+function isVis(x,y){
+  if(G.blizzardActive){
+    if(G.hasGoggles) return true;
+    if(G.char==='russian'&&G.russianScopeLeft>0) return true;
+    return Math.abs(x-G.player.x)<=1&&Math.abs(y-G.player.y)<=1;
+  }
+  return true;
+}
+function hasAllItems(){
+  return Object.entries(G.requiredItems).every(([k,v])=>(G.inventory[k]||0)>=v);
+}
+function itemOffset(x,y){
+  const s=(x*73+y*37+x*y*11)%121;
+  return `translate(${(s%11)-5}px,${Math.floor(s/11)-5}px)`;
+}
+
+// ══════════════════════════════════════════
+//  BLIZZARD FX (canvas snowflakes)
+// ══════════════════════════════════════════
+let _snowAnimId=null;
+const _flakes=[];
+function startBlizzardFX(){
+  const cv=document.getElementById('blizCanvas');
+  if(!cv) return;
+  cv.style.display='block';
+  cv.width=Math.min(420,window.innerWidth);
+  cv.height=window.innerHeight;
+  _flakes.length=0;
+  for(let i=0;i<110;i++) _flakes.push({
+    x:Math.random()*cv.width, y:Math.random()*cv.height,
+    r:Math.random()*2.2+.4, vx:(Math.random()-.5)*2.2, vy:Math.random()*2.8+.7,
+    o:Math.random()*.65+.2
+  });
+  const ctx=cv.getContext('2d');
+  function frame(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.fillStyle='rgba(170,215,250,.06)';
+    ctx.fillRect(0,0,cv.width,cv.height);
+    _flakes.forEach(f=>{
+      ctx.globalAlpha=f.o;
+      ctx.fillStyle='#fff';
+      ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,Math.PI*2);ctx.fill();
+      const t=Date.now()/900;
+      f.x+=f.vx+Math.sin(t+f.y*.04)*1.4;
+      f.y+=f.vy;
+      if(f.y>cv.height){f.y=-5;f.x=Math.random()*cv.width;}
+      if(f.x<0)f.x=cv.width; if(f.x>cv.width)f.x=0;
+    });
+    ctx.globalAlpha=1;
+    _snowAnimId=requestAnimationFrame(frame);
+  }
+  if(_snowAnimId) cancelAnimationFrame(_snowAnimId);
+  frame();
+}
+function stopBlizzardFX(){
+  if(_snowAnimId){cancelAnimationFrame(_snowAnimId);_snowAnimId=null;}
+  const cv=document.getElementById('blizCanvas');
+  if(cv) cv.style.display='none';
+}
+function shuffleItems(){
+  const cells=G.grid.filter(c=>c.type==='baggage'&&c.item!=='goggles');
+  const items=cells.map(c=>c.item);
+  for(let i=items.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[items[i],items[j]]=[items[j],items[i]];}
+  cells.forEach((c,i)=>sc(c.x,c.y,{item:items[i]}));
+}
+function checkBlizzard(){
+  if(!G.blizzardActive&&G.frozenCount>=3){
+    G.blizzardActive=true;
+    shuffleItems();
+    log('【猛吹雪発生！】永続！アイテムが吹き飛ばされた！','danger');
+    snd.bliz();showMsg('猛吹雪発生！\n永続視界遮断\nアイテム散乱！',2200);
+    startBlizzardFX();
+  }
+}
+
+// ══════════════════════════════════════════
+//  TILE EFFECTS
+// ══════════════════════════════════════════
+function triggerCollapse(x,y){
+  G.frozenCount++;
+  snd.collapse();
+  const goUp=Math.random()<.7;
+  const dir=goUp?-1:1;
+  const steps=4;
+  let ny=y;
+  for(let i=0;i<steps;i++){
+    const cy=ny+dir;
+    if(!inB(x,cy)) break;
+    const t=gc(x,cy).type;
+    if(t==='abyss'||t==='hole'||t==='wall'||t==='snowblock') break;
+    ny=cy;
+  }
+  if(ny===y){
+    damage(Math.floor(G.maxHp*.3),'奈落に落ちた！');
+    G.player={x:AX,y:AY};
+    log(`【床崩壊】氷が割れた！${goUp?'上':'下'}方向に逃げ場なし…奈落落下！`,'danger');
+  } else {
+    G.player={x,y:ny};
+    log(`【床崩壊】氷が割れた！${goUp?'上':'下'}へ${Math.abs(ny-y)}マス吹き飛ばされた！`,'danger');
+    stepOnTile(x,ny,true);
+  }
+  checkBlizzard();
+}
+function triggerFrozen(x,y){
+  G.frozenCount++;G.frozenNextTurn=true;
+  G.se=Math.max(0,G.se-7);
+  log(`凍結ゾーン！SE-7%・次ターン移動1固定（累計${G.frozenCount}/3）`,'warning');
+  snd.freeze();
+  checkBlizzard();
+}
+function stepOnTile(x,y,skipGimmicks=false){
+  const cell=gc(x,y);
+  switch(cell.type){
+    case 'baggage':{
+      const item=cell.item;
+      if(item==='goggles'){
+        if(!G.blizzardActive){log('吹雪が来るまで装備できない…','warning');break;}
+        sc(x,y,{type:'floor'});
+        G.hasGoggles=true;
+        log('暗視ゴーグル装備！吹雪でも全マップ視認可能！','success');snd.pick();
+        break;
+      }
+      if(item==='spray'){
+        sc(x,y,{type:'floor'});
+        const rec=15+Math.floor(Math.random()*11);
+        G.se=Math.min(100,G.se+rec);
+        log(`回復スプレー！防寒スーツSE+${rec}%回復！`,'success');snd.pick();
+        break;
+      }
+      if(item==='medkit'){
+        sc(x,y,{type:'floor'});
+        const hpr=Math.floor(G.maxHp*.25);
+        G.hp=Math.min(G.maxHp,G.hp+hpr);
+        log(`治療箱！HP+${hpr}回復！`,'success');snd.pick();
+        break;
+      }
+      sc(x,y,{type:'floor'});
+      G.inventory[item]=(G.inventory[item]||0)+1;
+      const req=G.requiredItems[item]||0;
+      const have=G.inventory[item];
+      const suffix=req>1?` (${have}/${req})`:'';
+      log(`回収：${ITEM_LBL[item]||item}${suffix}！`,'success');snd.pick();
+      if(hasAllItems()) showMsg('全荷物を確保！\n飛行機へ戻れ！',2000);
+      break;
+    }
+    case 'battery':{
+      const rec=30+Math.floor(Math.random()*21);
+      G.se=Math.min(100,G.se+rec);
+      const hpr=Math.floor(G.maxHp*.1);G.hp=Math.min(G.maxHp,G.hp+hpr);
+      sc(x,y,{type:'floor'});log(`バッテリー！SE+${rec}% HP+${hpr}`,'success');snd.pick();
+      break;
+    }
+    case 'spare':{
+      G.pickaxeUses=Math.min(3,G.pickaxeUses+1);
+      sc(x,y,{type:'floor'});log('予備ピッケル！使用回数+1','success');snd.pick();
+      break;
+    }
+    case 'collapse':{
+      G.revealedGimmicks.add(ci(x,y));
+      if(skipGimmicks){sc(x,y,{type:'floor'});break;}
+      sc(x,y,{type:'hole'});triggerCollapse(x,y);break;
+    }
+    case 'cracked':{
+      G.se=Math.max(0,G.se-10);
+      log('ひび割れた氷！SE-10%追加消費','warning');
+      snd.danger();
+      break;
+    }
+    case 'frozen':{
+      G.revealedGimmicks.add(ci(x,y));
+      if(skipGimmicks){sc(x,y,{type:'floor'});break;}
+      sc(x,y,{type:'hole'});triggerFrozen(x,y);break;
+    }
+    case 'airplane':{
+      if(hasAllItems()){
+        G.won=true;G.gameOver=true;G.screen='result';
+        log('ミッション完了！全荷物を持って帰還！','success');snd.win();
+      } else {
+        const miss=Object.entries(G.requiredItems)
+          .filter(([k,v])=>(G.inventory[k]||0)<v)
+          .map(([k,v])=>`${ITEM_LBL[k]||k}(${G.inventory[k]||0}/${v})`);
+        log(`まだ${miss.join('、')}が必要だ！`,'warning');
+      }
+      break;
+    }
+  }
+}
+
+// ══════════════════════════════════════════
+//  MOVEMENT
+// ══════════════════════════════════════════
+function canPass(x,y,ignore=false){
+  if(!inB(x,y)) return false;
+  const t=gc(x,y).type;
+  if(t==='abyss'||t==='hole') return false;
+  if(t==='snowblock') return false;
+  if(!ignore&&t==='wall') return false;
+  return true;
+}
+function doMove(nx,ny,consumeSE=true,ignObs=false,skipG=false){
+  if(!canPass(nx,ny,ignObs)){if(!ignObs){log('進めない！','warning');snd.wall();}return false;}
+  G.player={x:nx,y:ny};snd.step();
+  if(consumeSE) G.se=Math.max(0,G.se-G.seCost);
+  stepOnTile(nx,ny,skipG);
+  return true;
+}
+function movePlayer(dx,dy){
+  if(G.gameOver||G.phase!=='move'||G.diceRolling) return;
+  if(G.stepsLeft<=0){log('移動できない！ターン終了してください','warning');render();return;}
+  const moved=doMove(G.player.x+dx,G.player.y+dy);
+  if(!moved){render();return;}
+  G.stepsLeft--;
+  if(!G.gameOver&&G.stepsLeft<=0) endTurn();
+  else render();
+  scrollToPlayer();
+}
+
+// ══════════════════════════════════════════
+//  DICE SYSTEM
+// ══════════════════════════════════════════
+let _diceTimer=null;
+function rollDice(){
+  if(G.gameOver||G.phase!=='roll'||G.diceRolling) return;
+  G.diceRolling=true;
+  G.diceVal=1;
+  let count=0;
+  const total=10;
+  const tick=()=>{
+    G.diceVal=Math.floor(Math.random()*6)+1;
+    snd.dice();count++;render();
+    if(count<total){ _diceTimer=setTimeout(tick, count<7?70:110); }
+    else {
+      // Final roll
+      let roll=Math.floor(Math.random()*6)+1;
+      if(G.se<=0) roll=Math.min(roll,3);
+      if(G.frozenNextTurn){roll=Math.min(roll,1);G.frozenNextTurn=false;}
+      G.diceVal=roll;
+      G.stepsLeft=roll;
+      G.diceRolling=false;
+      G.phase='move';
+      snd.diceEnd();
+      log(`サイコロ：${roll} → ${roll}歩移動可能`,'info');
+      render();
+    }
+  };
+  tick();
+}
+
+function useBattery(){
+  initAudio();
+  if(G.batteryCharges<=0||G.gameOver){log('バッテリー残量なし！','warning');render();return;}
+  G.batteryCharges--;
+  G.se=Math.min(100,G.se+30);
+  log(`🔋 バッテリー回復！SE+30%（残り${G.batteryCharges}/3回）`,'success');
+  snd.pick();render();
+}
+
+// ══════════════════════════════════════════
+//  END TURN
+// ══════════════════════════════════════════
+function endTurn(){
+  G.turn++;
+  G.pickaxeUsedThisTurn=false;
+  if(G.russianScopeLeft>0) G.russianScopeLeft--;
+  if(G.se<=0){const d=Math.floor(G.maxHp*.03);damage(d,'防寒エネルギー切れ（凍傷）');}
+  G.phase='roll';
+  G.diceVal=null;
+  if(!G.gameOver) render();
+}
+
+// ══════════════════════════════════════════
+//  PICKAXE / INVESTIGATE
+// ══════════════════════════════════════════
+function doPickaxe(dx,dy){
+  const tx=G.player.x+dx,ty=G.player.y+dy;
+  if(!inB(tx,ty)){G.actionMode=null;render();return;}
+  if(G.pickaxeUses<=0){log('ピッケルが残っていない！','warning');G.actionMode=null;render();return;}
+  if(G.pickaxeUsedThisTurn){log('ピッケルは1ターンに1回のみ使用可能','warning');G.actionMode=null;render();return;}
+  if(G.phase!=='move'){G.actionMode=null;render();return;}
+  G.se=Math.max(0,G.se-1);
+  G.pickaxeUses--;
+  G.pickaxeUsedThisTurn=true;
+  snd.pick2();
+  const cell=gc(tx,ty);
+  const isTrap=cell.type==='collapse'||cell.type==='frozen';
+  if(isTrap){
+    const trapName=cell.type==='collapse'?'床崩壊トラップ':'凍結トラップ';
+    sc(tx,ty,{type:'hole'});
+    G.revealedGimmicks.delete(ci(tx,ty));
+    log(`【ピッケル】${trapName}を解除！穴になった（残${G.pickaxeUses}回）`,'success');
+    showMsg('危険を除去した！',1200);
+    snd.pick();
+  } else if(cell.type==='snowblock'){
+    G.pickaxeUses++;G.pickaxeUsedThisTurn=false;G.se=Math.min(100,G.se+1);
+    log('雪が深すぎてピッケルが刺さらない！（返却）','warning');
+  } else if(cell.type==='wall'){
+    sc(tx,ty,{type:'hole'});
+    log(`【ピッケル】壁を掘り抜いた（残${G.pickaxeUses}回）`,'success');
+  } else if(cell.type==='hole'||cell.type==='abyss'){
+    G.pickaxeUses++;G.pickaxeUsedThisTurn=false;G.se=Math.min(100,G.se+1);
+    log('そこは既に穴だ！','warning');
+  } else {
+    log(`【ピッケル調査】安全なマスだ（残${G.pickaxeUses}回）`,'info');
+  }
+  G.actionMode=null;render();
+}
+
+// ══════════════════════════════════════════
+//  SKILLS
+// ══════════════════════════════════════════
+function doSkill(dx,dy){
+  if(G.skillUses<=0){log('スキル残回数なし！','warning');G.actionMode=null;render();return;}
+
+  // ── ロシア兵：暗視スコープ（方向不要・即時発動） ──
+  if(G.char==='russian'){
+    G.skillUses--;snd.skill();
+    G.russianScopeLeft=2;
+    log('ロシア兵：スコープ起動、吹雪の奥を捉えた！','success');
+    showMsg('暗視スコープ起動！\n2ターン間全視界確保',1500);
+    G.actionMode=null;render();return;
+  }
+
+  if(G.phase!=='move'){G.actionMode=null;render();return;}
+  G.skillUses--;G.se=Math.max(0,G.se-1);snd.skill();
+
+  // ── キャプテン：ピッケル探索（2マス先まで調査） ──
+  if(G.char==='captain'){
+    let scanned=0;
+    for(let d=1;d<=2;d++){
+      const tx=G.player.x+dx*d,ty=G.player.y+dy*d;
+      if(!inB(tx,ty)) break;
+      const c=gc(tx,ty);
+      const nm=c.type==='frozen'?'❄凍結ゾーン（危険）':
+               c.type==='collapse'?'⚠床崩壊マス（危険）':
+               c.type==='baggage'?`📦荷物(${ITEM_LBL[c.item]||'?'})`:
+               c.type==='battery'?'🔋バッテリー':
+               c.type==='spare'?'⛏予備ピッケル':
+               c.type==='wall'?'壁（通行不可）':
+               c.type==='snowblock'?'❄雪（通行不可）':
+               (c.type==='hole'||c.type==='abyss')?'穴（通行不可）':'安全なマス';
+      const isDanger=c.type==='collapse'||c.type==='frozen';
+      if(isDanger) G.revealedGimmicks.add(ci(tx,ty));
+      log(`[探索]${d}マス先＝${nm}`,isDanger?'warning':'info');
+      scanned++;
+    }
+    if(!scanned) log('[探索] その先は範囲外','warning');
+    else log('キャプテン：2マス先まで安全を確認した。','info');
+    G.actionMode=null;render();return;
+  }
+
+  // ── ルーキー：がむしゃら（追加2マス移動） ──
+  if(G.char==='rookie'){
+    log('ルーキー：がむしゃらに2マス突き進んだ！','success');
+    let moved=0;
+    for(let i=0;i<2&&!G.gameOver;i++){
+      const nx=G.player.x+dx,ny=G.player.y+dy;
+      if(!canPass(nx,ny)){snd.wall();break;}
+      G.player={x:nx,y:ny};G.se=Math.max(0,G.se-G.seCost);snd.step();
+      stepOnTile(nx,ny);if(G.gameOver)break;moved++;
+    }
+    if(!moved) log('ルーキー：前に進めない！','warning');
+    G.actionMode=null;if(!G.gameOver){render();scrollToPlayer();}return;
+  }
+
+  // ── 死刑囚：障害物跳躍（壁・穴を飛び越え） ──
+  if(G.char==='prisoner'){
+    let skipped=false,found=false,lx=G.player.x,ly=G.player.y;
+    for(let d=1;d<=3;d++){
+      const nx=G.player.x+dx*d,ny=G.player.y+dy*d;
+      if(!inB(nx,ny)) break;
+      const t=gc(nx,ny).type;
+      if(t==='abyss') break;
+      if(!canPass(nx,ny)){skipped=true;continue;}
+      lx=nx;ly=ny;found=true;break;
+    }
+    if(found&&skipped){
+      G.player={x:lx,y:ly};G.se=Math.max(0,G.se-G.seCost);snd.step();
+      stepOnTile(lx,ly);
+      log('死刑囚：奈落を飛び越えて着地した！','success');
+    } else if(found){
+      G.player={x:lx,y:ly};G.se=Math.max(0,G.se-G.seCost);snd.step();
+      stepOnTile(lx,ly);
+      log('死刑囚：2マス先に跳んだ（障害物なし）','info');
+    } else {
+      G.skillUses++;G.se=Math.min(100,G.se+1);
+      log('死刑囚：行き先がない！スキル返却','warning');
+    }
+    G.actionMode=null;if(!G.gameOver){render();scrollToPlayer();}return;
+  }
+}
+
+// ══════════════════════════════════════════
+//  START GAME
+// ══════════════════════════════════════════
+function startGame(charId,diff){
+  G=mkState();G.char=charId;G.difficulty=diff;
+  G.seCost=SE_COST[diff];G.requiredItems={...REQ[diff]};
+  const cd=CHARS[charId];G.hp=cd.hp;G.maxHp=cd.hp;G.skillUses=cd.skillMax;
+  stopBlizzardFX();
+  G.screen='game';
+  let tries=0;
+  do{G.grid=genMap(diff);tries++;}while(!connected(G.grid)&&tries<30);
+  log(`出撃！${cd.name} / ${DIFF_LBL[diff]}`,'success');
+  log(`目標：${Object.entries(G.requiredItems).map(([k,v])=>`${ITEM_LBL[k]||k}×${v}`).join('・')}を回収して帰還`,'info');
+  render();scrollToPlayer();
+}
+
+// ══════════════════════════════════════════
+//  AUTO-SCROLL TO PLAYER
+// ══════════════════════════════════════════
+function scrollToPlayer(){
+  setTimeout(()=>{
+    const ga=document.querySelector('.grid-area');
+    if(!ga) return;
+    const CELL=45;
+    const target=G.player.y*CELL-(ga.clientHeight/2)+CELL/2;
+    ga.scrollTop=Math.max(0,target);
+  },30);
+}
+
+// ══════════════════════════════════════════
+//  RENDERING
+// ══════════════════════════════════════════
+function bar(val,max,cFn){
+  const pct=Math.max(0,Math.min(100,(val/max)*100));
+  return `<div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${cFn(pct)}"></div></div>`;
+}
+function renderGrid(){
+  let h='<div class="grid">';
+  for(let y=0;y<GROWS;y++) for(let x=0;x<GCOLS;x++){
+    const cell=gc(x,y);
+    const vis=isVis(x,y);
+    const isP=G.player.x===x&&G.player.y===y;
+    const revealed=G.revealedGimmicks.has(ci(x,y));
+    let dt=cell.type;
+    if((dt==='collapse'||dt==='frozen')&&!revealed) dt='floor';
+    const iceV = ((x*3 + y*7 + x*y) % 5);
+    let cls,inner='';
+    if(dt==='snowblock'){cls='cell c-snow';inner=SVGS.snowblock;}
+    else if(!vis && !(cell.type==='baggage' && (cell.item==='egg'||cell.item==='goggles'))){cls='cell c-fog';}
+    else switch(dt){
+      case 'floor':    cls='cell c-floor'; inner=SVGS['ice'+iceV]; break;
+      case 'wall':     cls='cell c-wall';  inner=SVGS.wall;  break;
+      case 'abyss':    cls='cell c-abyss'; inner=SVGS.abyss; break;
+      case 'airplane': cls='cell c-airplane'; inner=SVGS.airplane; break;
+      case 'baggage':{
+        cls='cell c-floor';
+        const off=itemOffset(x,y);
+        inner=`${SVGS['ice'+iceV]}<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform:${off};line-height:0">${SVGS[cell.item]||SVGS.baggage}</div>`;
+        break;
+      }
+      case 'battery':  cls='cell c-floor';  inner=`${SVGS['ice'+iceV]}<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;line-height:0">${SVGS.battery}</div>`;  break;
+      case 'spare':    cls='cell c-floor';  inner=`${SVGS['ice'+iceV]}<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;line-height:0">${SVGS.spare}</div>`;    break;
+      case 'frozen':   cls='cell c-frozen-hit'; inner=SVGS.frozen;  break;
+      case 'collapse': cls='cell c-collapse-warn'; inner=SVGS.cwarn; break;
+      case 'cracked':  cls='cell c-cracked';        inner=SVGS.cracked; break;
+      case 'hole':     cls='cell c-hole';           inner=SVGS.hole;  break;
+      default:         cls='cell c-floor'; inner=SVGS['ice'+iceV];
+    }
+    // Action target highlight
+    const isAdj=Math.abs(x-G.player.x)+Math.abs(y-G.player.y)===1;
+    const isAxis=x===G.player.x||y===G.player.y;
+    const dist=Math.abs(x-G.player.x)+Math.abs(y-G.player.y);
+    if(G.actionMode==='pickaxe'&&isAdj) cls+=' c-target';
+    if(G.actionMode==='skill'&&dist>0){
+      if(G.char==='captain'){
+        if((x===G.player.x||y===G.player.y)&&dist<=2) cls+=' c-target';
+      } else if(G.char==='rookie'||G.char==='prisoner'){
+        if(isAxis) cls+=' c-target';
+      }
+    }
+    h+=`<div class="${cls}" onclick="onCell(${x},${y})" ${isP?'data-player="1"':''}>
+      ${inner}
+      ${isP?`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;">${charSVG(G.char,34,G.playerDir)}</div>`:''}
+    </div>`;
+  }
+  h+='</div>';return h;
+}
+function renderStatus(){
+  const cd=CHARS[G.char];
+  const hC=p=>p<20?'#E53935':p<50?'#FB6F0A':'#C62828';
+  const sC=p=>p<20?'#E53935':p<40?'#F57F17':'#0288D1';
+  return `<div class="hdr">
+    <div class="hdr-row1">
+      <span class="hdr-name" style="color:${cd.color}">${cd.name}</span>
+      <span style="font-size:9px;color:#3A6085">SE消費${G.seCost}%/歩</span>
+      <span class="hdr-turn">Turn ${G.turn}</span>
+    </div>
+    <div class="bar-wrap">
+      <span class="bar-lbl" style="color:#EF5350">HP</span>
+      ${bar(G.hp,G.maxHp,hC)}
+      <span class="bar-val" style="color:${hC(G.hp/G.maxHp*100)}">${Math.round(G.hp)}/${G.maxHp}</span>
+    </div>
+    <div class="bar-wrap">
+      <span class="bar-lbl" style="color:${sC(G.se)}">SE</span>
+      ${bar(G.se,100,sC)}
+      <span class="bar-val" style="color:${sC(G.se)}">${Math.round(G.se)}%</span>
+    </div>
+  </div>`;
+}
+function renderDice(){
+  const isRoll=G.phase==='roll';
+  const isMove=G.phase==='move';
+  const face=G.diceVal??'—';
+  const dots=['','⚀','⚁','⚂','⚃','⚄','⚅'];
+  const dot=typeof G.diceVal==='number'?dots[G.diceVal]:face;
+  const batDis=G.batteryCharges<=0||G.gameOver;
+  const batCol=batDis?'#1A3020':'#1A7040';
+  const batTxt=batDis?'#2A4030':'#50C880';
+  return `<div class="dice-area" style="flex-direction:column;align-items:stretch;gap:4px;min-height:unset;padding-bottom:6px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="dice-face ${G.diceRolling?'rolling':''}">${dot}</div>
+      ${isRoll&&!G.diceRolling
+        ? `<button class="roll-btn" onclick="rollDice()">🎲 サイコロを振る</button>`
+        : isMove
+        ? `<div class="steps-info">残<b style="color:#FFEB3B;font-size:14px"> ${G.stepsLeft} </b>歩</div>
+           <button class="act-btn end-btn" style="flex:1;padding:6px 8px" onclick="onEnd()">ターン終了</button>`
+        : `<div class="steps-info" style="color:#546E7A">振り中…</div>`
+      }
+    </div>
+    <button onclick="useBattery()" ${batDis?'disabled':''}
+      style="background:#0C2218;border:2px solid ${batCol};color:${batTxt};font-size:10px;font-family:monospace;padding:4px 8px;border-radius:2px;cursor:${batDis?'not-allowed':'pointer'};${batDis?'opacity:.4':''}">
+      🔋 バッテリー回復（残り ${G.batteryCharges}/3 回）
+    </button>
+  </div>`;
+}
+function renderInv(){
+  const chips=Object.entries(G.requiredItems).map(([k,v])=>{
+    const have=G.inventory[k]||0;const done=have>=v;
+    const lbl=(ITEM_LBL[k]||k).toUpperCase();
+    return `<span class="inv-chip ${done?'inv-have':'inv-need'}">${done?'✓':'✗'} ${lbl} ${have}/${v}</span>`;
+  }).join('');
+  const gogChip=G.hasGoggles?`<span class="inv-chip inv-have" style="border-color:#00C870;color:#40E890;background:#0A2818">✓ 暗視ゴーグル</span>`:'';
+  return `<div class="inv-bar"><span style="font-size:9px;color:#2A4060;margin-right:2px">荷物:</span>${chips}${gogChip}</div>`;
+}
+function renderLog(){
+  return `<div class="log">${G.logs.slice(0,6).map(e=>`<div class="l-${e.t}">${e.msg}</div>`).join('')}</div>`;
+}
+function renderCtrl(){
+  const canAct=G.phase==='move'&&!G.diceRolling&&!G.gameOver;
+  const cd=CHARS[G.char];
+  const canSkill=G.char==='russian'
+    ?(G.skillUses>0&&!G.gameOver)
+    :(canAct&&G.skillUses>0);
+  const skDis=!canSkill;
+  const pkDis=G.pickaxeUses<=0||G.pickaxeUsedThisTurn||!canAct;
+  const sOn=G.actionMode==='skill';
+  const pOn=G.actionMode==='pickaxe';
+  const warns=[];
+  if(G.blizzardActive) warns.push(G.hasGoggles?'⛄ 猛吹雪（ゴーグル無効化中）':'⛄ 猛吹雪（永続）');
+  if(G.char==='russian'&&G.russianScopeLeft>0) warns.push(`🔭 スコープ残${G.russianScopeLeft}T`);
+  if(G.frozenNextTurn) warns.push('❄ 凍結：次ターン最大1');
+  if(G.se<=0) warns.push('<span class="pulse" style="color:#EF5350">⚠ エネルギー切れ！移動最大3・凍傷進行</span>');
+  const skillLabel=G.char==='russian'&&G.russianScopeLeft>0
+    ?`スコープ中 (${G.skillUses})`
+    :`${cd.skill} (${G.skillUses})`;
+  return `<div class="ctrl">
+    <div>
+      <div class="dpad">
+        <div class="dbtn-blank"></div>
+        <button class="dbtn" onclick="onDP(0,-1)" ${!canAct?'disabled':''}>↑</button>
+        <div class="dbtn-blank"></div>
+        <button class="dbtn" onclick="onDP(-1,0)" ${!canAct?'disabled':''}>←</button>
+        <div class="dbtn-blank" style="background:#0B1829;border-radius:50%;opacity:.25"></div>
+        <button class="dbtn" onclick="onDP(1,0)" ${!canAct?'disabled':''}>→</button>
+        <div class="dbtn-blank"></div>
+        <button class="dbtn" onclick="onDP(0,1)" ${!canAct?'disabled':''}>↓</button>
+        <div class="dbtn-blank"></div>
+      </div>
+    </div>
+    <div class="act-col">
+      <button class="act-btn ${sOn?'on':''}" onclick="toggleSkill()" ${skDis?'disabled':''}>
+        ${skillLabel}
+      </button>
+      <button class="act-btn ${pOn?'on':''}" onclick="togglePick()" ${pkDis?'disabled':''}>
+        ${G.pickaxeUsedThisTurn?'ピッケル 使用済':'ピッケル ('+G.pickaxeUses+')'}
+      </button>
+      ${warns.length?`<div class="ctrl-notes">${warns.join('<br>')}</div>`:''}
+    </div>
+  </div>`;
+}
+function render(){
+  const app=document.getElementById('app');if(!app)return;
+  if(G.screen==='select'){stopBlizzardFX();app.innerHTML=renderSelect();return;}
+  if(G.screen==='difficulty'){app.innerHTML=renderDiff();return;}
+  if(G.screen==='result'){stopBlizzardFX();app.innerHTML=renderResult();return;}
+  const _gaOld=document.getElementById('gridArea');
+  const _savedScroll=_gaOld?_gaOld.scrollTop:0;
+  const frost=G.hp<=G.maxHp*.2||G.se<=20;
+  const bliz=G.blizzardActive;
+  app.innerHTML=`
+    ${frost?'<div class="frost"></div>':''}
+    ${bliz?'<div class="blizzard"></div>':''}
+    ${G.centralMsg?`<div class="cmsg">${G.centralMsg}</div>`:''}
+    <div class="game-wrap">
+      ${renderStatus()}
+      ${renderInv()}
+      <div class="grid-area" id="gridArea">${renderGrid()}</div>
+      ${renderDice()}
+      ${renderLog()}
+      ${renderCtrl()}
+    </div>`;
+  if(_savedScroll>0){const _ga=document.getElementById('gridArea');if(_ga)_ga.scrollTop=_savedScroll;}
+}
+
+// ══════════════════════════════════════════
+//  SCREENS
+// ══════════════════════════════════════════
+function renderSelect(){
+  return `<div class="screen">
+    <div class="logo">❄ 氷島の卵 ❄<div class="logo-sub">ICE ISLAND EGG</div></div>
+    <div style="font-size:10px;color:#3A6085;text-align:center;margin-bottom:14px">キャラクターを選択してください</div>
+    <div class="char-grid">
+      ${Object.values(CHARS).map(c=>`
+        <div class="char-card" onclick="selChar('${c.id}')">
+          <div class="char-card-inner">${charSVG(c.id,42)}
+            <div>
+              <div class="char-label" style="color:${c.color}">${c.name}</div>
+              <div class="char-hp-lbl">HP ${c.hp}</div>
+            </div>
+          </div>
+          <div class="char-skill-name" style="color:${c.color};opacity:.85">【${c.skill}】</div>
+          <div class="char-skill-lbl">${c.skillDesc}</div>
+        </div>`).join('')}
+    </div>
+    <div style="font-size:9px;color:#1E3050;text-align:center;margin-top:8px">スキル・ピッケル・調査は各3回使用可能</div>
+  </div>`;
+}
+function renderDiff(){
+  const cd=CHARS[G.char];
+  return `<div class="screen">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+      ${charSVG(G.char,50)}
+      <div>
+        <div style="color:${cd.color};font-weight:900;font-size:16px">${cd.name}</div>
+        <div style="font-size:10px;color:#4A7A9B">HP ${cd.hp} ／ 【${cd.skill}】</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#5A8AB0;margin-bottom:10px">難易度を選択：</div>
+    ${['EASY','NORMAL','HARD'].map(d=>{
+      const col=d==='EASY'?'#56C97B':d==='NORMAL'?'#3FA8F5':'#E85858';
+      return `<div class="diff-card" onclick="selDiff('${d}')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="diff-title" style="color:${col}">${DIFF_LBL[d]}</span>
+          <span style="font-size:10px;color:#2A4060">SE消費 ${SE_COST[d]}%/歩</span>
+        </div>
+        <div class="diff-desc">必要：${Object.entries(REQ[d]).map(([k,v])=>`${ITEM_LBL[k]||k}×${v}`).join(' + ')}</div>
+      </div>`;
+    }).join('')}
+    <div style="font-size:9px;color:#1E3050;text-align:center;margin-top:6px">
+      全難易度：予備ピッケル×2・バッテリーをランダム配置
+    </div>
+    <button class="btn" onclick="G.screen='select';render()" style="margin-top:12px">← 戻る</button>
+  </div>`;
+}
+function renderResult(){
+  const cd=CHARS[G.char];
+  return `<div class="screen">
+    <div style="text-align:center;padding:20px 0 12px">
+      <div style="font-size:36px">${G.won?'✈':'☠'}</div>
+      <div style="font-size:20px;font-weight:900;color:${G.won?'#56C97B':'#E85858'};margin-top:6px">
+        ${G.won?'ミッション完了！':'ミッション失敗…'}
+      </div>
+      <div style="font-size:11px;color:#4A7A9B;margin-top:6px">${cd.name} ／ ${DIFF_LBL[G.difficulty]}</div>
+    </div>
+    <div class="result-box">
+      <div style="font-size:10px;color:#3A6085;margin-bottom:8px">リザルト</div>
+      <div class="stat-grid">
+        <div>ターン数 <span style="color:${cd.color}">${G.turn}</span></div>
+        <div>残HP <span style="color:#EF5350">${Math.round(G.hp)}</span></div>
+        <div>残SE <span style="color:#3FA8F5">${Math.round(G.se)}%</span></div>
+        <div>回収 <span style="color:#56C97B">${Object.entries(G.requiredItems).filter(([k,v])=>(G.inventory[k]||0)>=v).length}/${Object.keys(G.requiredItems).length}</span></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin:8px 0">
+      ${Object.entries(G.requiredItems).map(([k,v])=>{
+        const have=G.inventory[k]||0;const done=have>=v;
+        return `<span class="inv-chip ${done?'inv-have':'inv-need'}">${done?'✓':'✗'} ${ITEM_LBL[k]||k} ${have}/${v}</span>`;
+      }).join('')}
+    </div>
+    <button class="btn btn-p" onclick="G.screen='select';G.char=null;render()">もう一度プレイ</button>
+    <button class="btn" onclick="startGame('${G.char}','${G.difficulty}')">同じ設定で再挑戦</button>
+  </div>`;
+}
+
+// ══════════════════════════════════════════
+//  EVENT HANDLERS
+// ══════════════════════════════════════════
+function selChar(id){initAudio();G=mkState();G.char=id;G.screen='difficulty';render();}
+function selDiff(d){initAudio();startGame(G.char,d);}
+function toggleSkill(){
+  initAudio();
+  if(G.skillUses<=0){log('スキル残回数なし！','warning');render();return;}
+  if(G.char==='russian'){
+    doSkill(0,0);return;
+  }
+  if(G.phase!=='move') return;
+  G.actionMode=G.actionMode==='skill'?null:'skill';render();
+}
+function togglePick(){
+  initAudio();
+  if(G.pickaxeUses<=0||G.pickaxeUsedThisTurn||G.phase!=='move') return;
+  G.actionMode=G.actionMode==='pickaxe'?null:'pickaxe';render();
+}
+function setDir(dx,dy){if(dx>0)G.playerDir='east';else if(dx<0)G.playerDir='west';else if(dy>0)G.playerDir='south';else if(dy<0)G.playerDir='north';}
+function onDP(dx,dy){
+  initAudio();
+  if(G.gameOver) return;
+  setDir(dx,dy);
+  if(G.actionMode==='pickaxe'){doPickaxe(dx,dy);return;}
+  if(G.actionMode==='skill'){doSkill(dx,dy);return;}
+  movePlayer(dx,dy);
+}
+function onCell(x,y){
+  initAudio();if(G.gameOver)return;
+  const dx=x-G.player.x,dy=y-G.player.y;
+  if(G.actionMode==='pickaxe'&&Math.abs(dx)+Math.abs(dy)===1){doPickaxe(dx,dy);return;}
+  if(G.actionMode==='skill'){
+    if(dx===0&&dy===0) return;
+    const adx=Math.abs(dx),ady=Math.abs(dy);
+    // Cardinal direction normalize
+    let ndx=0,ndy=0;
+    if(adx>0&&ady===0) ndx=dx>0?1:-1;
+    else if(ady>0&&adx===0) ndy=dy>0?1:-1;
+    else if(adx>=ady) ndx=dx>0?1:-1;
+    else ndy=dy>0?1:-1;
+    if(ndx!==0||ndy!==0) doSkill(ndx,ndy);
+    return;
+  }
+  if(Math.abs(dx)+Math.abs(dy)===1){setDir(dx,dy);movePlayer(dx,dy);}
+}
+function onEnd(){
+  initAudio();if(G.gameOver||G.phase!=='move') return;
+  endTurn();render();
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+G=mkState();render();
+
+// ══════════════════════════════════════════
+//  BGM
+// ══════════════════════════════════════════
+let _bgmTimer=null,_bgmType=null;
+const _BGM={
+  title:{notes:[261,329,392,523,392,329,261,329,392,440,392,329,220,277,329,440,329,277],dur:480,wave:'triangle',vol:.055},
+  game: {notes:[220,262,330,392,330,262,185,220,277,349,277,220,196,247,294,392,294,247],dur:320,wave:'square',  vol:.032},
+};
+function stopBGM(){if(_bgmTimer){clearTimeout(_bgmTimer);_bgmTimer=null;}_bgmType=null;}
+function playBGM(type){
+  if(_bgmType===type||!_ac) return;
+  stopBGM();
+  _bgmType=type;
+  const cfg=_BGM[type];let idx=0;
+  (function tick(){
+    if(_bgmType!==type) return;
+    const f=cfg.notes[idx++%cfg.notes.length];
+    const osc=_ac.createOscillator(),g=_ac.createGain();
+    osc.connect(g);g.connect(_ac.destination);
+    osc.type=cfg.wave;osc.frequency.value=f;
+    g.gain.setValueAtTime(cfg.vol,_ac.currentTime);
+    g.gain.linearRampToValueAtTime(0,_ac.currentTime+cfg.dur/1000*.75);
+    osc.start(_ac.currentTime);osc.stop(_ac.currentTime+cfg.dur/1000*.75);
+    _bgmTimer=setTimeout(tick,cfg.dur);
+  })();
+}
+
+// ══════════════════════════════════════════
+//  タイトルに戻るボタン + BGM連携
+// ══════════════════════════════════════════
+(function(){
+  const _r=window.render;
+  window.render=function(){
+    _r.apply(this,arguments);
+    const s=G&&G.screen;
+
+    // ctrlエリア内・左上に絶対配置（ゲーム画面のみ）
+    if(s==='game'){
+      const ctrl=document.querySelector('.ctrl');
+      if(ctrl&&!document.getElementById('_titleBtn')){
+        ctrl.style.position='relative';
+        const btn=document.createElement('button');
+        btn.id='_titleBtn';
+        btn.style.cssText='position:absolute;top:6px;left:6px;padding:4px 9px;font-size:10px;font-family:monospace;background:#080F1C;border:1px solid #1A3A60;color:#5A90C0;cursor:pointer;border-radius:2px;opacity:.85;';
+        btn.textContent='⬅ タイトル';
+        btn.onclick=function(){stopBGM();G.screen='select';render();};
+        ctrl.appendChild(btn);
+      }
+    }
+
+    if(!_ac) return;
+    if(s==='game') playBGM('game');
+    else if(s==='select'||s==='difficulty') playBGM('title');
+    else stopBGM();
+  };
+})();
+
+// ══════════════════════════════════════════
+//  隠しキャラ：化石ハンター（ベテラン）
+// ══════════════════════════════════════════
+
+// 永続ストア（localStorage）
+// _fossilSeen : 一度でも飛行機脱出クリアしたか
+// _fossilOK   : 現在使用可能か
+const FOSSIL_STORE={
+  get hasSeen(){return localStorage.getItem('_fossilSeen')==='1';},
+  get isUnlocked(){return localStorage.getItem('_fossilOK')==='1';},
+  lock(){localStorage.setItem('_fossilOK','0');},
+  unlock(){localStorage.setItem('_fossilSeen','1');localStorage.setItem('_fossilOK','1');},
+};
+let _fossilRevived=false;
+let _fossilResultDone=false;
+
+// CHARS に追加
+CHARS['fossil']={
+  id:'fossil',name:'化石ハンター（ベテラン）',hp:120,color:'#D0D0C0',dark:'#808090',
+  skill:'不死身の執念',skillMax:0,
+  skillDesc:'HP0の瞬間に1度だけ自動復活（HP50%回復）。使用後は再クリアで再解放。',
+};
+
+// charSVG ラップ（fossil スプライト：ワイルドおじさん）
+(function(){
+  const _c=window.charSVG;
+  // カラーパレット
+  const h ='#909090', hd='#606060'; // グレー髪（ランダム感）
+  const sk='#C07848', skd='#9A5C30'; // 日焼け肌
+  const ew='#E8E8D8', ep='#1A1010'; // 目：白目・瞳
+  const br='#686860'; // 眉毛
+  const ms='#808078'; // 口髭・髭
+  const su='#7EC8E3', sd='#2272A0'; // タンクトップ
+  const lg='#1A4A72', ld='#0C2A44'; // ジーンズ
+  const bt='#1A1E22', btd='#0A0C0E'; // ブーツ
+
+  // ── 正面 ──
+  const south=`
+<rect x="5" y="0" width="6" height="1" fill="${h}"/>
+<rect x="4" y="1" width="8" height="2" fill="${h}"/>
+<rect x="3" y="0" width="1" height="3" fill="${hd}"/>
+<rect x="12" y="0" width="1" height="3" fill="${hd}"/>
+<rect x="4" y="3" width="8" height="4" fill="${sk}"/>
+<rect x="4" y="3" width="3" height="1" fill="${br}"/>
+<rect x="9" y="3" width="3" height="1" fill="${br}"/>
+<rect x="5" y="4" width="2" height="1" fill="${ew}"/>
+<rect x="9" y="4" width="2" height="1" fill="${ew}"/>
+<rect x="6" y="4" width="1" height="1" fill="${ep}"/>
+<rect x="9" y="4" width="1" height="1" fill="${ep}"/>
+<rect x="5" y="5" width="6" height="1" fill="${ms}"/>
+<rect x="4" y="6" width="8" height="1" fill="${ms}"/>
+<rect x="0" y="7" width="3" height="3" fill="${sk}"/>
+<rect x="13" y="7" width="3" height="3" fill="${sk}"/>
+<rect x="3" y="7" width="10" height="4" fill="${su}"/>
+<rect x="3" y="7" width="1" height="4" fill="${sd}"/>
+<rect x="12" y="7" width="1" height="4" fill="${sd}"/>
+<rect x="3" y="11" width="10" height="1" fill="${ld}"/>
+<rect x="3" y="12" width="4" height="2" fill="${lg}"/>
+<rect x="9" y="12" width="4" height="2" fill="${lg}"/>
+<rect x="2" y="14" width="5" height="2" fill="${bt}"/>
+<rect x="9" y="14" width="5" height="2" fill="${bt}"/>
+<rect x="2" y="15" width="12" height="1" fill="${btd}"/>`.trim();
+
+  // ── 背面 ──
+  const north=`
+<rect x="4" y="0" width="8" height="3" fill="${h}"/>
+<rect x="3" y="1" width="1" height="2" fill="${hd}"/>
+<rect x="12" y="1" width="1" height="2" fill="${hd}"/>
+<rect x="5" y="3" width="6" height="1" fill="${sk}"/>
+<rect x="0" y="7" width="3" height="3" fill="${sk}"/>
+<rect x="13" y="7" width="3" height="3" fill="${sk}"/>
+<rect x="3" y="4" width="10" height="7" fill="${su}"/>
+<rect x="3" y="4" width="1" height="7" fill="${sd}"/>
+<rect x="12" y="4" width="1" height="7" fill="${sd}"/>
+<rect x="3" y="11" width="10" height="1" fill="${ld}"/>
+<rect x="3" y="12" width="4" height="2" fill="${lg}"/>
+<rect x="9" y="12" width="4" height="2" fill="${lg}"/>
+<rect x="2" y="14" width="5" height="2" fill="${bt}"/>
+<rect x="9" y="14" width="5" height="2" fill="${bt}"/>
+<rect x="2" y="15" width="12" height="1" fill="${btd}"/>`.trim();
+
+  // ── 横（東）──
+  const east=`
+<rect x="5" y="0" width="5" height="1" fill="${h}"/>
+<rect x="4" y="1" width="6" height="2" fill="${h}"/>
+<rect x="3" y="1" width="1" height="2" fill="${hd}"/>
+<rect x="4" y="3" width="6" height="4" fill="${sk}"/>
+<rect x="7" y="3" width="2" height="1" fill="${br}"/>
+<rect x="7" y="4" width="2" height="1" fill="${ew}"/>
+<rect x="8" y="4" width="1" height="1" fill="${ep}"/>
+<rect x="9" y="5" width="1" height="1" fill="${skd}"/>
+<rect x="5" y="5" width="4" height="1" fill="${ms}"/>
+<rect x="4" y="6" width="5" height="1" fill="${ms}"/>
+<rect x="3" y="6" width="2" height="1" fill="${ms}"/>
+<rect x="11" y="7" width="3" height="3" fill="${sk}"/>
+<rect x="1" y="7" width="3" height="4" fill="${su}"/>
+<rect x="1" y="7" width="1" height="4" fill="${sd}"/>
+<rect x="4" y="7" width="7" height="4" fill="${su}"/>
+<rect x="4" y="7" width="1" height="4" fill="${sd}"/>
+<rect x="10" y="7" width="1" height="4" fill="${sd}"/>
+<rect x="4" y="11" width="7" height="1" fill="${ld}"/>
+<rect x="5" y="12" width="3" height="2" fill="${lg}"/>
+<rect x="7" y="12" width="3" height="2" fill="${lg}"/>
+<rect x="4" y="14" width="4" height="2" fill="${bt}"/>
+<rect x="7" y="14" width="4" height="2" fill="${bt}"/>
+<rect x="4" y="15" width="7" height="1" fill="${btd}"/>`.trim();
+
+  const west=`<g transform="translate(16,0) scale(-1,1)">${east}</g>`;
+
+  window.charSVG=function(id,sz=40,dir='south'){
+    if(id!=='fossil') return _c(id,sz,dir);
+    const body=({south,north,east,west})[dir]||south;
+    return `<svg viewBox="0 0 16 16" width="${sz}" height="${sz}" style="image-rendering:pixelated;flex-shrink:0">${body}</svg>`;
+  };
+})();
+
+// startGame ラップ（復活フラグ初期化）
+(function(){
+  const _sg=window.startGame;
+  window.startGame=function(charId,diff){
+    _fossilRevived=false;
+    _sg.apply(this,arguments);
+  };
+})();
+
+// damage ラップ（自動復活）
+(function(){
+  const _d=window.damage;
+  window.damage=function(amt,reason){
+    const wasOver=G.gameOver;
+    _d.apply(this,arguments);
+    if(!wasOver&&G.gameOver&&!G.won&&G.char==='fossil'&&!_fossilRevived){
+      G.gameOver=false;
+      G.screen='game';
+      G.hp=Math.floor(G.maxHp*.5);
+      _fossilRevived=true;
+      log('【奇跡の復活！】ベテランの執念、死の淵から蘇った！HP50%回復！','success');
+      showMsg('奇跡の復活！\nHP50%回復！',1800);
+    }
+  };
+})();
+
+// render ラップ（カード注入 + ロック管理）
+(function(){
+  const _r=window.render;
+  window.render=function(){
+    _r.apply(this,arguments);
+    const s=G&&G.screen;
+
+    // キャラ選択：fossil カードは常時表示（後処理不要）
+    if(s==='select') _fossilResultDone=false;
+
+    // リザルト（復活フラグのみリセット用に保持）
+    if(s==='result'&&!_fossilResultDone) _fossilResultDone=true;
+  };
+})();
+
+// 全ラッパー設定後に再描画（fossil を select 画面に反映）
+render();
+</script>
+</body>
+</html>
