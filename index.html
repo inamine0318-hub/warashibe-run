@@ -1238,19 +1238,19 @@ function startGame(charId,diff){
 // ══════════════════════════════════════════
 let _collapseScroll=false;
 function scrollToPlayer(){
-  const delay=_collapseScroll?130:30;
+  const smooth=_collapseScroll;
+  _collapseScroll=false; // 常にここでリセット（gaがnullでも残らない）
   setTimeout(()=>{
     const ga=document.querySelector('.grid-area');
     if(!ga) return;
     const CELL=45;
     const target=G.player.y*CELL-(ga.clientHeight/2)+CELL/2;
-    if(_collapseScroll){
-      _collapseScroll=false;
+    if(smooth){
       ga.scrollTo({top:Math.max(0,target),behavior:'smooth'});
     } else {
       ga.scrollTop=Math.max(0,target);
     }
-  },delay);
+  },smooth?130:30);
 }
 
 // ══════════════════════════════════════════
