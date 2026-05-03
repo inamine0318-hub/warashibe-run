@@ -1497,8 +1497,16 @@ function renderResult(){
         return `<span class="inv-chip ${done?'inv-have':'inv-need'}">${done?'✓':'✗'} ${ITEM_LBL[k]||k} ${have}/${v}</span>`;
       }).join('')}
     </div>
-    <button class="btn btn-p" onclick="G.screen='select';G.char=null;render()">もう一度プレイ</button>
-    <button class="btn" onclick="startGame('${G.char}','${G.difficulty}')">同じ設定で再挑戦</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
+      <button class="btn" style="background:#0A1E38;border-color:#1A4070;font-size:11px;padding:12px 6px"
+        onclick="G.screen='select';G.char=null;render()">
+        👤 キャラクター<br>選択へ
+      </button>
+      <button class="btn btn-p" style="font-size:11px;padding:12px 6px;border-color:${G.won?'#1A6038':'#8B2020'};background:${G.won?'#0C2A1A':'#200A0A'};color:${G.won?'#56C97B':'#E85858'}"
+        onclick="startGame('${G.char}','${G.difficulty}')">
+        ${G.won?'🔄 もう一度<br>同じ設定で':'⚔ リトライ<br>同じ設定で'}
+      </button>
+    </div>
   </div>`;
 }
 
@@ -1586,28 +1594,13 @@ function playBGM(type){
 }
 
 // ══════════════════════════════════════════
-//  タイトルに戻るボタン + BGM連携
+//  BGM連携
 // ══════════════════════════════════════════
 (function(){
   const _r=window.render;
   window.render=function(){
     _r.apply(this,arguments);
     const s=G&&G.screen;
-
-    // ctrlエリア内・左上に絶対配置（ゲーム画面のみ）
-    if(s==='game'){
-      const ctrl=document.querySelector('.ctrl');
-      if(ctrl&&!document.getElementById('_titleBtn')){
-        ctrl.style.position='relative';
-        const btn=document.createElement('button');
-        btn.id='_titleBtn';
-        btn.style.cssText='position:absolute;top:6px;left:6px;padding:4px 9px;font-size:10px;font-family:monospace;background:#080F1C;border:1px solid #1A3A60;color:#5A90C0;cursor:pointer;border-radius:2px;opacity:.85;';
-        btn.textContent='⬅ タイトル';
-        btn.onclick=function(){stopBGM();G.screen='select';render();};
-        ctrl.appendChild(btn);
-      }
-    }
-
     if(!_ac) return;
     if(s==='game') playBGM('game');
     else if(s==='select'||s==='difficulty') playBGM('title');
