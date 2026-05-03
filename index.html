@@ -910,12 +910,21 @@ function triggerCollapse(x,y){
     ny=cy;
   }
   if(ny===y){
-    damage(Math.floor(G.maxHp*.3),'奈落に落ちた！');
+    // 逃げ場なし：スーツSE-40%ダメージ
+    const seDmg=40;
+    G.se=Math.max(0,G.se-seDmg);
+    log(`【床崩壊】逃げ場なし！奈落落下！防寒スーツSE-${seDmg}%損傷`,'danger');
+    _collapseScroll=true;
+    showMsg(`奈落に落ちた！\n防寒スーツ損傷\nSE -${seDmg}%！`,1800);
     G.player={x:AX,y:AY};
-    log(`【床崩壊】氷が割れた！${goUp?'上':'下'}方向に逃げ場なし…奈落落下！`,'danger');
   } else {
+    // 吹き飛ばし：スーツSE-20%ダメージ ＋ スムーススクロール
+    const seDmg=20;
+    G.se=Math.max(0,G.se-seDmg);
+    _collapseScroll=true;
+    showMsg(`床崩壊！\n${goUp?'上':'下'}へ吹き飛ばされた！\nSE -${seDmg}%`,1800);
     G.player={x,y:ny};
-    log(`【床崩壊】氷が割れた！${goUp?'上':'下'}へ${Math.abs(ny-y)}マス吹き飛ばされた！`,'danger');
+    log(`【床崩壊】${goUp?'上':'下'}へ${Math.abs(ny-y)}マス吹き飛び！スーツSE-${seDmg}%`,'danger');
     stepOnTile(x,ny,true);
   }
   checkBlizzard();
@@ -1227,14 +1236,21 @@ function startGame(charId,diff){
 // ══════════════════════════════════════════
 //  AUTO-SCROLL TO PLAYER
 // ══════════════════════════════════════════
+let _collapseScroll=false;
 function scrollToPlayer(){
+  const delay=_collapseScroll?130:30;
   setTimeout(()=>{
     const ga=document.querySelector('.grid-area');
     if(!ga) return;
     const CELL=45;
     const target=G.player.y*CELL-(ga.clientHeight/2)+CELL/2;
-    ga.scrollTop=Math.max(0,target);
-  },30);
+    if(_collapseScroll){
+      _collapseScroll=false;
+      ga.scrollTo({top:Math.max(0,target),behavior:'smooth'});
+    } else {
+      ga.scrollTop=Math.max(0,target);
+    }
+  },delay);
 }
 
 // ══════════════════════════════════════════
