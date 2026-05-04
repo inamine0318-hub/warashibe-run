@@ -1051,14 +1051,19 @@ function rollDice(){
   if(G.gameOver||G.phase!=='roll'||G.diceRolling) return;
   G.diceRolling=true;
   G.diceVal=1;
+  render(); // 開始時1回だけ：ボタン→「振り中…」に切替
   let count=0;
   const total=10;
+  const dots=['','⚀','⚁','⚂','⚃','⚄','⚅'];
   const tick=()=>{
     G.diceVal=Math.floor(Math.random()*6)+1;
-    snd.dice();count++;render();
-    if(count<total){ _diceTimer=setTimeout(tick, count<7?70:110); }
-    else {
-      // Final roll
+    snd.dice();
+    count++;
+    // dice-face のテキストだけ書き換え（グリッド再生成しない）
+    const el=document.querySelector('.dice-face');
+    if(el) el.textContent=dots[G.diceVal];
+    if(count<total){_diceTimer=setTimeout(tick,count<7?70:110);}
+    else{
       let roll=Math.floor(Math.random()*6)+1;
       if(G.se<=0) roll=Math.min(roll,3);
       if(G.frozenNextTurn){roll=Math.min(roll,1);G.frozenNextTurn=false;}
@@ -1068,7 +1073,7 @@ function rollDice(){
       G.phase='move';
       snd.diceEnd();
       log(`サイコロ：${roll} → ${roll}歩移動可能`,'info');
-      render();
+      render(); // 終了時1回だけ：移動UIに切替
     }
   };
   tick();
