@@ -724,7 +724,7 @@ function mkState(){
     inventory:{},
     logs:[],
     gameOver:false, won:false,
-    blizzardActive:false, hasGoggles:false, frozenCount:0, frozenNextTurn:false,
+    blizzardActive:false, hasGoggles:false, gogglesTurnsLeft:0, frozenCount:0, frozenNextTurn:false,
     batteryCharges:3,
     playerDir:'south',
     actionMode:null, // null | 'skill' | 'pickaxe'
@@ -945,7 +945,9 @@ function stepOnTile(x,y,skipGimmicks=false){
         if(!G.blizzardActive){log('吹雪が来るまで装備できない…','warning');break;}
         sc(x,y,{type:'floor'});
         G.hasGoggles=true;
-        log('暗視ゴーグル装備！吹雪でも全マップ視認可能！','success');snd.pick();
+        G.gogglesTurnsLeft=5;
+        log('🕶️ 暗視スコープ装備！5ターン間全視界確保！','success');snd.pick();
+        showMsg('暗視スコープ装備！\n5ターン有効',1400);
         break;
       }
       if(item==='spray'){
@@ -1098,6 +1100,14 @@ function endTurn(){
   if(G.se<=0){const d=Math.floor(G.maxHp*.03);damage(d,'防寒エネルギー切れ（凍傷）');}
   G.phase='roll';
   G.diceVal=null;
+  if(G.hasGoggles){
+    G.gogglesTurnsLeft--;
+    if(G.gogglesTurnsLeft<=0){
+      G.hasGoggles=false;
+      log('🕶️ 暗視スコープのバッテリーが切れた！','danger');
+      showMsg('暗視スコープ\nバッテリー切れ！',1800);
+    }
+  }
   if(!G.gameOver) render();
 }
 
@@ -1370,7 +1380,7 @@ function renderInv(){
     const lbl=(ITEM_LBL[k]||k).toUpperCase();
     return `<span class="inv-chip ${done?'inv-have':'inv-need'}">${done?'✓':'✗'} ${lbl} ${have}/${v}</span>`;
   }).join('');
-  const gogChip=G.hasGoggles?`<span class="inv-chip inv-have" style="border-color:#00C870;color:#40E890;background:#0A2818">✓ 暗視ゴーグル</span>`:'';
+  const gogChip=G.hasGoggles?`<span class="inv-chip inv-have" style="border-color:#00C870;color:#40E890;background:#0A2818">🕶️ 暗視(残${G.gogglesTurnsLeft}T)</span>`:'';
   return `<div class="inv-bar"><span style="font-size:9px;color:#2A4060;margin-right:2px">荷物:</span>${chips}${gogChip}</div>`;
 }
 function renderLog(){
@@ -1387,7 +1397,7 @@ function renderCtrl(){
   const sOn=G.actionMode==='skill';
   const pOn=G.actionMode==='pickaxe';
   const warns=[];
-  if(G.blizzardActive) warns.push(G.hasGoggles?'⛄ 猛吹雪（ゴーグル無効化中）':'⛄ 猛吹雪（永続）');
+  if(G.blizzardActive) warns.push(G.hasGoggles?`🕶️ 暗視スコープ残${G.gogglesTurnsLeft}T`:'⛄ 猛吹雪（永続・視界1マス）');
   if(G.char==='russian'&&G.russianScopeLeft>0) warns.push(`🔭 スコープ残${G.russianScopeLeft}T`);
   if(G.frozenNextTurn) warns.push('❄ 凍結：次ターン最大1');
   if(G.se<=0) warns.push('<span class="pulse" style="color:#EF5350">⚠ エネルギー切れ！移動最大3・凍傷進行</span>');
