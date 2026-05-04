@@ -945,9 +945,9 @@ function stepOnTile(x,y,skipGimmicks=false){
         if(!G.blizzardActive){log('吹雪が来るまで装備できない…','warning');break;}
         sc(x,y,{type:'floor'});
         G.hasGoggles=true;
-        G.gogglesTurnsLeft=5;
-        log('🕶️ 暗視スコープ装備！5ターン間全視界確保！','success');snd.pick();
-        showMsg('暗視スコープ装備！\n5ターン有効',1400);
+        G.gogglesTurnsLeft=7;
+        log('🕶️ 暗視スコープ装備！7ターン間全視界確保！','success');snd.pick();
+        showMsg('暗視スコープ装備！\n7ターン有効',1400);
         break;
       }
       if(item==='spray'){
