@@ -1827,6 +1827,83 @@ CHARS['icebuster']={
   skillDesc:'雪壁マスを1マス選択し通行可能にする（3回）。使用ターンは移動不可。猛吹雪中も周囲2マス視界確保（パッシブ）。',
 };
 
+// アイスバスター スプライト（重装ロボット）
+(function(){
+  const _c=window.charSVG;
+  const A='#1C3A56',L='#2E5A80',D='#08101E',CY='#00CCEF',EY='#FFE040',M='#1E2838',ML='#2E3E52';
+  const south=`<rect x="6" y="0" width="4" height="1" fill="${CY}"/>
+<rect x="4" y="1" width="8" height="1" fill="${L}"/>
+<rect x="3" y="2" width="10" height="4" fill="${A}"/>
+<rect x="3" y="2" width="1" height="4" fill="${D}"/>
+<rect x="12" y="2" width="1" height="4" fill="${D}"/>
+<rect x="4" y="2" width="8" height="3" fill="${D}"/>
+<rect x="5" y="3" width="2" height="1" fill="${EY}"/>
+<rect x="9" y="3" width="2" height="1" fill="${EY}"/>
+<rect x="4" y="5" width="8" height="1" fill="${L}"/>
+<rect x="6" y="6" width="4" height="1" fill="${M}"/>
+<rect x="0" y="7" width="16" height="4" fill="${A}"/>
+<rect x="0" y="7" width="1" height="4" fill="${D}"/>
+<rect x="15" y="7" width="1" height="4" fill="${D}"/>
+<rect x="4" y="8" width="8" height="2" fill="${L}"/>
+<rect x="5" y="9" width="6" height="1" fill="${CY}"/>
+<rect x="13" y="7" width="3" height="3" fill="${M}"/>
+<rect x="14" y="8" width="2" height="2" fill="${ML}"/>
+<rect x="2" y="11" width="12" height="1" fill="${D}"/>
+<rect x="3" y="12" width="4" height="2" fill="${M}"/>
+<rect x="9" y="12" width="4" height="2" fill="${M}"/>
+<rect x="2" y="14" width="5" height="2" fill="${A}"/>
+<rect x="9" y="14" width="5" height="2" fill="${A}"/>
+<rect x="2" y="15" width="12" height="1" fill="${D}"/>`;
+  const north=`<rect x="6" y="0" width="4" height="1" fill="${CY}"/>
+<rect x="4" y="1" width="8" height="1" fill="${L}"/>
+<rect x="3" y="2" width="10" height="4" fill="${A}"/>
+<rect x="3" y="2" width="1" height="4" fill="${D}"/>
+<rect x="12" y="2" width="1" height="4" fill="${D}"/>
+<rect x="5" y="3" width="6" height="1" fill="${L}"/>
+<rect x="7" y="3" width="2" height="2" fill="${M}"/>
+<rect x="4" y="5" width="8" height="1" fill="${L}"/>
+<rect x="6" y="6" width="4" height="1" fill="${M}"/>
+<rect x="0" y="7" width="16" height="4" fill="${A}"/>
+<rect x="0" y="7" width="1" height="4" fill="${D}"/>
+<rect x="15" y="7" width="1" height="4" fill="${D}"/>
+<rect x="4" y="7" width="8" height="4" fill="${M}"/>
+<rect x="5" y="8" width="6" height="2" fill="${ML}"/>
+<rect x="6" y="9" width="4" height="1" fill="${CY}"/>
+<rect x="2" y="11" width="12" height="1" fill="${D}"/>
+<rect x="3" y="12" width="4" height="2" fill="${M}"/>
+<rect x="9" y="12" width="4" height="2" fill="${M}"/>
+<rect x="2" y="14" width="5" height="2" fill="${A}"/>
+<rect x="9" y="14" width="5" height="2" fill="${A}"/>
+<rect x="2" y="15" width="12" height="1" fill="${D}"/>`;
+  const east=`<rect x="5" y="0" width="4" height="1" fill="${L}"/>
+<rect x="4" y="1" width="5" height="1" fill="${A}"/>
+<rect x="4" y="2" width="5" height="3" fill="${A}"/>
+<rect x="4" y="2" width="1" height="4" fill="${D}"/>
+<rect x="8" y="2" width="1" height="4" fill="${D}"/>
+<rect x="5" y="2" width="3" height="2" fill="${D}"/>
+<rect x="5" y="2" width="2" height="2" fill="${EY}"/>
+<rect x="5" y="5" width="3" height="1" fill="${L}"/>
+<rect x="5" y="6" width="3" height="1" fill="${M}"/>
+<rect x="3" y="7" width="7" height="5" fill="${A}"/>
+<rect x="3" y="7" width="1" height="5" fill="${D}"/>
+<rect x="9" y="7" width="1" height="5" fill="${D}"/>
+<rect x="4" y="8" width="5" height="2" fill="${L}"/>
+<rect x="5" y="9" width="3" height="1" fill="${CY}"/>
+<rect x="10" y="7" width="6" height="2" fill="${M}"/>
+<rect x="11" y="8" width="4" height="1" fill="${ML}"/>
+<rect x="15" y="7" width="1" height="2" fill="${D}"/>
+<rect x="3" y="12" width="7" height="1" fill="${D}"/>
+<rect x="4" y="13" width="3" height="1" fill="${M}"/>
+<rect x="5" y="14" width="4" height="2" fill="${A}"/>
+<rect x="4" y="15" width="6" height="1" fill="${D}"/>`;
+  const west=`<g transform="translate(16,0) scale(-1,1)">${east}</g>`;
+  window.charSVG=function(id,sz=40,dir='south'){
+    if(id!=='icebuster') return _c(id,sz,dir);
+    const body=({south,north,east,west})[dir]||south;
+    return `<svg viewBox="0 0 16 16" width="${sz}" height="${sz}" style="image-rendering:pixelated;flex-shrink:0">${body}</svg>`;
+  };
+})();
+
 // 全ラッパー設定後に再描画（icebuster を select 画面に反映）
 render();
 </script>
