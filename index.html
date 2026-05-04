@@ -288,10 +288,11 @@ const snd={
 // ══════════════════════════════════════════
 function charSVG(id,sz=40,dir='south'){
   const p={
-    captain:  {suit:'#42A5F5',dark:'#0D47A1',goggle:'#E65100',boot:'#1A237E',leg:'#1565C0',gl:'#FFB74D'},
-    prisoner: {suit:'#EF6C00',dark:'#BF360C',goggle:'#1B5E20',boot:'#212121',leg:'#BF360C',gl:'#66BB6A'},
-    russian:  {suit:'#43A047',dark:'#1B5E20',goggle:'#F57F17',boot:'#1A1A2E',leg:'#2E7D32',gl:'#FFEE58'},
-    rookie:   {suit:'#F9A825',dark:'#E65100',goggle:'#0277BD',boot:'#3E2723',leg:'#E65100',gl:'#4FC3F7'},
+    captain:   {suit:'#42A5F5',dark:'#0D47A1',goggle:'#E65100',boot:'#1A237E',leg:'#1565C0',gl:'#FFB74D'},
+    prisoner:  {suit:'#EF6C00',dark:'#BF360C',goggle:'#1B5E20',boot:'#212121',leg:'#BF360C',gl:'#66BB6A'},
+    russian:   {suit:'#43A047',dark:'#1B5E20',goggle:'#F57F17',boot:'#1A1A2E',leg:'#2E7D32',gl:'#FFEE58'},
+    rookie:    {suit:'#F9A825',dark:'#E65100',goggle:'#0277BD',boot:'#3E2723',leg:'#E65100',gl:'#4FC3F7'},
+    icebuster: {suit:'#00BCD4',dark:'#006064',goggle:'#FFD600',boot:'#004D40',leg:'#00838F',gl:'#E0F7FA'},
   }[id];
   const pk='#5A4A30',pkd='#3A2E1A',pkl='#7A6448';
   const s=p.suit,d=p.dark,g=p.goggle,gl=p.gl,b=p.boot,l=p.leg;
@@ -821,6 +822,7 @@ function isVis(x,y){
   if(G.blizzardActive){
     if(G.hasGoggles) return true;
     if(G.char==='russian'&&G.russianScopeLeft>0) return true;
+    if(G.char==='icebuster') return Math.abs(x-G.player.x)<=2&&Math.abs(y-G.player.y)<=2;
     return Math.abs(x-G.player.x)<=1&&Math.abs(y-G.player.y)<=1;
   }
   return true;
@@ -1153,6 +1155,7 @@ function doPickaxe(dx,dy){
 // ══════════════════════════════════════════
 function doSkill(dx,dy){
   if(G.skillUses<=0){log('スキル残回数なし！','warning');G.actionMode=null;render();return;}
+  if(G.char==='icebuster'){G.actionMode=null;render();return;}
 
   // ── ロシア兵：暗視スコープ（方向不要・即時発動） ──
   if(G.char==='russian'){
@@ -1317,6 +1320,8 @@ function renderGrid(){
         if((x===G.player.x||y===G.player.y)&&dist<=2) cls+=' c-target';
       } else if(G.char==='rookie'||G.char==='prisoner'){
         if(isAxis) cls+=' c-target';
+      } else if(G.char==='icebuster'){
+        if(gc(x,y).type==='snowblock') cls+=' c-target';
       }
     }
     h+=`<div class="${cls}" onclick="onCell(${x},${y})" ${isP?'data-player="1"':''}>
@@ -1574,6 +1579,20 @@ function onCell(x,y){
   const dx=x-G.player.x,dy=y-G.player.y;
   if(G.actionMode==='pickaxe'&&Math.abs(dx)+Math.abs(dy)===1){doPickaxe(dx,dy);return;}
   if(G.actionMode==='skill'){
+    if(G.char==='icebuster'){
+      const cell=gc(x,y);
+      if(cell&&cell.type==='snowblock'){
+        G.skillUses--;
+        sc(x,y,{type:'floor'});
+        snd.skill();
+        log(`【キャノン砲】雪壁を砲撃で破壊！（残${G.skillUses}回）`,'success');
+        showMsg('キャノン砲！\n雪壁を破壊した！',1400);
+        G.actionMode=null;
+        G.stepsLeft=0;
+        endTurn();
+      }
+      return;
+    }
     if(dx===0&&dy===0) return;
     const adx=Math.abs(dx),ady=Math.abs(dy);
     // Cardinal direction normalize
@@ -1797,6 +1816,18 @@ CHARS['fossil']={
 })();
 
 // 全ラッパー設定後に再描画（fossil を select 画面に反映）
+render();
+
+// ══════════════════════════════════════════
+//  アイスバスター
+// ══════════════════════════════════════════
+CHARS['icebuster']={
+  id:'icebuster',name:'アイスバスター',hp:120,color:'#00BCD4',dark:'#006064',
+  skill:'キャノン砲',skillMax:3,
+  skillDesc:'雪壁マスを1マス選択し通行可能にする（3回）。使用ターンは移動不可。猛吹雪中も周囲2マス視界確保（パッシブ）。',
+};
+
+// 全ラッパー設定後に再描画（icebuster を select 画面に反映）
 render();
 </script>
 </body>
